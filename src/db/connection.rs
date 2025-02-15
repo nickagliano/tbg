@@ -34,6 +34,7 @@ pub fn get_connection(db_path: Option<&str>) -> Result<Connection> {
                 current_stage TEXT NOT NULL,
                 x INTEGER NOT NULL DEFAULT 0, -- X coordinate of the player
                 y INTEGER NOT NULL DEFAULT 0, -- Y coordinate of the player
+                direction INTEGER NOT NULL DEFAULT 0, -- enum for last direction of the player
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE

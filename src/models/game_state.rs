@@ -2,6 +2,7 @@ use chrono::NaiveDateTime;
 use rusqlite::{Connection, Result};
 
 use crate::db::GAME_STATE_TABLE;
+use crate::world::navigation::Direction;
 
 // TODO: Model epics, and stages within epics.
 
@@ -10,8 +11,9 @@ pub struct GameState {
     pub player_id: i32,            // Foreign key to the player
     pub current_epic: String,      // Represents a larger story arc of the game
     pub current_stage: String,     // Represents the current stage of the epic
-    pub x: i32,                    // Player's X coordinate
-    pub y: i32,                    // Player's Y coordinate
+    pub x: usize,                  // Player's X coordinate
+    pub y: usize,                  // Player's Y coordinate
+    pub direction: Direction,      // Track last movement
     pub created_at: NaiveDateTime, // Timestamp when the game state was created
     pub updated_at: NaiveDateTime, // Timestamp when the game state was last updated
 }
@@ -24,6 +26,7 @@ impl GameState {
             player_id,
             x: 0,
             y: 0,
+            direction: Direction::Up,
             created_at: chrono::Local::now().naive_local(),
             updated_at: chrono::Local::now().naive_local(),
         }
@@ -69,7 +72,7 @@ impl GameState {
 
     pub fn load_for_player(conn: &Connection, player_id: i32) -> Result<Option<Self>> {
         let mut stmt = conn.prepare(&format!(
-            "SELECT current_epic, current_stage, x, y, created_at, updated_at FROM {} WHERE player_id = ?1",
+            "SELECT current_epic, current_stage, x, y, direction, created_at, updated_at FROM {} WHERE player_id = ?1",
             GAME_STATE_TABLE
         ))?;
         let mut game_state_iter = stmt.query_map([player_id], |row| {
@@ -79,8 +82,9 @@ impl GameState {
                 player_id,
                 x: row.get(2)?,
                 y: row.get(3)?,
-                created_at: row.get(4)?,
-                updated_at: row.get(5)?,
+                direction: row.get(4)?,
+                created_at: row.get(5)?,
+                updated_at: row.get(6)?,
             })
         })?;
 

@@ -2,6 +2,7 @@ use crate::db::PLAYER_TABLE;
 use chrono::NaiveDateTime;
 use rusqlite::Error as RusqliteError;
 use rusqlite::{params, Connection, Result};
+use sha2::{Digest, Sha256};
 use std::fmt;
 use std::str::FromStr; // Alias for rusqlite::Error
 use uuid::Uuid; // For handling timestamps
@@ -273,6 +274,24 @@ impl Player {
 
         Ok(())
     }
+
+    // TODO: Add height, background, and use this.
+    pub fn generate_seed(
+        player_name: &str,
+        gender: &str,
+        height: u8,
+        background: &str,
+        timestamp: u64,
+    ) -> u64 {
+        let input = format!(
+            "{}:{}:{}:{}:{}",
+            player_name, gender, height, background, timestamp
+        );
+        let hash = Sha256::digest(input.as_bytes());
+
+        // Convert first 8 bytes into a u64 seed
+        u64::from_le_bytes(hash[..8].try_into().expect("Hash conversion failed"))
+    }
 }
 
 #[cfg(test)]
@@ -285,4 +304,6 @@ mod tests {
         assert_eq!(player.name, "Test Player");
         assert_eq!(player.gender.to_db_string(), "male");
     }
+
+    // TODO: Add tests! For everything!
 }

@@ -8,13 +8,16 @@ pub struct Viewport {
     pub height: usize,
 }
 
+const HEIGHT_ADJUSTMENT: usize = 2;
+
 impl Viewport {
+    // FIXME: store the -2 adjustment we have to do to height as a constant
     pub fn new() -> Self {
         let (term_width, term_height) = terminal_size().unwrap_or((80, 24)); // Default to 80x24 if it fails
         let max_size = 2000;
 
         let width = std::cmp::min(term_width as usize, max_size);
-        let height = std::cmp::min(term_height as usize, max_size) - 1;
+        let height = std::cmp::min(term_height as usize, max_size) - HEIGHT_ADJUSTMENT as usize;
 
         Viewport { width, height }
     }
@@ -25,7 +28,7 @@ impl Viewport {
         if let Ok((w, h)) = terminal_size() {
             let max_size = 2000;
             self.width = w.min(max_size) as usize;
-            self.height = h.min(max_size) as usize;
+            self.height = (h.min(max_size) - HEIGHT_ADJUSTMENT as u16) as usize;
         }
     }
 

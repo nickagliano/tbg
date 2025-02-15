@@ -6,7 +6,6 @@ use crossterm::terminal;
 /// WIP implementation of world navigation!
 pub fn run() {
     // Enable raw mode
-    // FIXME: If this code panics, raw mode never gets disabled
     terminal::enable_raw_mode().unwrap();
 
     // (w, h)
@@ -21,34 +20,33 @@ pub fn run() {
     let mut viewport = Viewport::new();
 
     loop {
-        // FIXME: It would be better if the update size was handled dynamically
-        //        by the NavigationEvent
+        // Update size dynamically
         viewport.update_size();
         viewport.render(&map, player_x, player_y, player_direction);
 
         if let Some(action) = prompt_for_action() {
             match action {
                 NavigationAction::Up => {
-                    if player_direction == Direction::Up {
-                        player_y -= 1; // Move up (decrease y)
+                    if player_y > 0 && player_direction == Direction::Up {
+                        player_y -= 1; // Move up (decrease y) only if we're not at the top
                     }
                     player_direction = Direction::Up;
                 }
                 NavigationAction::Down => {
-                    if player_direction == Direction::Down {
-                        player_y += 1; // Move down (increase y)
+                    if player_y < map.get_height() - 1 && player_direction == Direction::Down {
+                        player_y += 1; // Move down (increase y) only if we're not at the bottom
                     }
                     player_direction = Direction::Down;
                 }
                 NavigationAction::Left => {
-                    if player_direction == Direction::Left {
-                        player_x -= 1; // Move left (decrease x)
+                    if player_x > 0 && player_direction == Direction::Left {
+                        player_x -= 1; // Move left (decrease x) only if we're not at the left edge
                     }
                     player_direction = Direction::Left;
                 }
                 NavigationAction::Right => {
-                    if player_direction == Direction::Right {
-                        player_x += 1; // Move right (increase x)
+                    if player_x < map.get_width() - 1 && player_direction == Direction::Right {
+                        player_x += 1; // Move right (increase x) only if we're not at the right edge
                     }
                     player_direction = Direction::Right;
                 }

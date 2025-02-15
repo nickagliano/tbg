@@ -4,6 +4,7 @@ use crate::models::player::Gender;
 use crate::models::player::Player;
 use crate::music::music_player::MusicPlayer;
 use crate::terminal_utils;
+use crate::world::viewport::Viewport;
 use crossterm::cursor::{Hide, Show};
 use crossterm::event::{self, Event, KeyCode};
 use crossterm::execute;
@@ -14,13 +15,18 @@ use std::time::Duration;
 
 pub struct GameEngine {
     music_player: MusicPlayer,
+    viewport: Viewport,
 }
 
 impl GameEngine {
     pub fn new() -> Self {
         let music_player = MusicPlayer::new();
+        let viewport = Viewport::new();
 
-        Self { music_player }
+        Self {
+            music_player,
+            viewport,
+        }
     }
 
     pub fn start(&mut self) {
@@ -32,16 +38,26 @@ impl GameEngine {
     pub fn event_loop(&mut self) {
         enable_raw_mode().expect("Failed to enable raw mode");
         while let Ok(true) = event::poll(Duration::from_millis(100)) {
-            if let Ok(Event::Key(key_event)) = event::read() {
-                match key_event.code {
-                    KeyCode::Char('q') => {
-                        println!("Quitting game!!");
-                        break;
+            if let Ok(evt) = event::read() {
+                match evt {
+                    Event::Key(key_event) => match key_event.code {
+                        KeyCode::Char('q') => {
+                            println!("Quitting game!!");
+                            break;
+                        }
+                        KeyCode::Char('t') => println!("Toggling music..."),
+                        KeyCode::Char('r') => println!("Playing music..."),
+                        KeyCode::Enter => println!("Continue"),
+                        _ => println!("Unhandled key: {:?}", key_event.code),
+                    },
+                    Event::Resize(_, _) => {
+                        self.viewport.update_size();
+                        println!(
+                            "Viewport resized: {}x{}",
+                            self.viewport.width, self.viewport.height
+                        );
                     }
-                    KeyCode::Char('t') => println!("Toggling music..."),
-                    KeyCode::Char('r') => println!("Playing music..."),
-                    KeyCode::Enter => println!("Continue"),
-                    _ => println!("Unhandled key: {:?}", key_event.code),
+                    _ => {}
                 }
             }
         }

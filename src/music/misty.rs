@@ -1,3 +1,7 @@
+// TODO: Abstract "bars", time signature, combine
+//       melody and bass, validate bars, etc.
+//
+// TODO: Abstract out chords?
 pub const MELODY: [(&str, u64); 134] = [
     ("B♭4", 500), // "Look"
     ("G4", 500),  // "at"

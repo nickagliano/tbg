@@ -6,6 +6,7 @@ use std::sync::{
     Arc, Mutex,
 };
 
+// TODO: Add sound effects
 pub struct MusicPlayer {
     music_playing: Arc<AtomicBool>,
     stream: Arc<Mutex<Option<cpal::Stream>>>,
@@ -136,4 +137,48 @@ fn play_sound(music_playing: Arc<AtomicBool>) -> Result<cpal::Stream, Box<dyn st
 
     stream.play()?;
     Ok(stream)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_music_player() {
+        let player = MusicPlayer::new();
+        assert_eq!(player.music_playing.load(Ordering::SeqCst), false);
+        assert!(player.stream.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn test_play() {
+        let player = MusicPlayer::new();
+        player.play();
+        assert_eq!(player.music_playing.load(Ordering::SeqCst), true);
+        assert!(player.stream.lock().unwrap().is_some());
+    }
+
+    #[test]
+    fn test_toggle() {
+        let player = MusicPlayer::new();
+
+        player.toggle();
+        assert_eq!(player.music_playing.load(Ordering::SeqCst), true);
+
+        player.toggle();
+        assert_eq!(player.music_playing.load(Ordering::SeqCst), false);
+    }
+
+    #[test]
+    fn test_stop() {
+        let player = MusicPlayer::new();
+        player.play();
+        assert!(player.stream.lock().unwrap().is_some());
+
+        player.stop();
+        assert_eq!(player.music_playing.load(Ordering::SeqCst), false);
+        assert!(player.stream.lock().unwrap().is_none());
+    }
+
+    // NOTE: Don't have a great test for play_sound() :shrug:
 }

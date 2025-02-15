@@ -1,6 +1,6 @@
 use crossterm::{
     cursor, execute,
-    style::{Color, SetForegroundColor},
+    style::{Color as TermionColor, SetForegroundColor},
     terminal::{self, ClearType},
 };
 use crossterm::{
@@ -16,6 +16,10 @@ use std::{
     thread,
     time::Duration,
 };
+// For calculating visual width of multibyte unicode chars
+// TODO: I'd like to get rid of this dependency if possible
+//       - Could just hardcode a map of multibyte chars I'm using
+use unicode_width::UnicodeWidthStr;
 
 // TODO: Set FrameType in settings
 // pub enum FrameType {
@@ -23,17 +27,20 @@ use std::{
 //     Fantasy,
 // }
 
-struct Colors;
-impl Colors {
-    const ACTION_COLOR: Color = Color::DarkCyan;
-    const TEXT_COLOR: Color = Color::DarkYellow;
+/// TBGColors, not to be confused with termion::Color (aliased to TermionColor),
+/// are a subset of ANSI colors that are used to style the TUI
+// TODO: store these in settings!
+struct TBGColors;
+impl TBGColors {
+    const ACTION_COLOR: TermionColor = TermionColor::DarkCyan;
+    const TEXT_COLOR: TermionColor = TermionColor::DarkYellow;
 
     // A single method to get the ANSI escape code for any color
-    fn fg_string(color: Color) -> String {
+    fn fg_string(color: TermionColor) -> String {
         match color {
-            Color::DarkCyan => "\x1b[36m".to_string(), // ANSI code for DarkCyan
-            Color::DarkYellow => "\x1b[33m".to_string(), // ANSI code for DarkYellow
-            _ => "\x1b[39m".to_string(),               // Default color if no match
+            TermionColor::DarkCyan => "\x1b[36m".to_string(), // ANSI code for DarkCyan
+            TermionColor::DarkYellow => "\x1b[33m".to_string(), // ANSI code for DarkYellow
+            _ => "\x1b[39m".to_string(),                      // Default color if no match
         }
     }
 
@@ -43,6 +50,8 @@ impl Colors {
     }
 }
 
+/// The standard method to get free-form user input, e.g., when
+/// they input their name during character creation
 pub fn get_input() -> String {
     let mut stdout = io::stdout();
     let mut user_input = String::new();
@@ -50,9 +59,9 @@ pub fn get_input() -> String {
     // Disable raw mode while we get user input
     terminal::disable_raw_mode().unwrap();
 
-    // Set foreground color
+    // Print input prompt using action required color
     stdout
-        .execute(SetForegroundColor(Colors::ACTION_COLOR))
+        .execute(SetForegroundColor(TBGColors::ACTION_COLOR))
         .unwrap();
     write!(stdout, "\n> ").unwrap();
     stdout.execute(ResetColor).unwrap();
@@ -64,16 +73,19 @@ pub fn get_input() -> String {
     // Reset terminal colors and clear screen
     stdout.execute(ResetColor).unwrap();
     clear_console(None);
-
     stdout.flush().unwrap();
 
     // Renable raw mode after input
     terminal::enable_raw_mode().unwrap();
 
+    // Return trimmed user input
     user_input.trim().to_string()
 }
 
+/// Helper method which mostly just wraps termion's clear terminal function
 pub fn clear_console(stdout: Option<&mut dyn Write>) {
+    // This conditional lets use use clear_console in testing scenarios
+    // In real-game usage, clear_console will always be called with None
     let stdout = match stdout {
         Some(s) => s,              // If a custom writer is passed, use it directly
         None => &mut io::stdout(), // If no custom writer is passed, use io::stdout()
@@ -84,6 +96,15 @@ pub fn clear_console(stdout: Option<&mut dyn Write>) {
     stdout.execute(cursor::MoveTo(0, 0)).unwrap();
 }
 
+/// Utility method, helpful for moving the user through dialogue/narration
+/// - Prints a prompt using the "action-required" styling
+/// - Polls the UI, blocking execution until the player presses enter
+/// - Clears the terminal
+// NOTE: Should this be responsible for clearing the terminal?
+//       - Seems like a leaky abstraction
+//       - Might want to let the rendering loop clear the terminal
+//       - It's not really hurting anything right now, but this
+//       - Might be double-clearing the terminal
 pub fn prompt_enter_to_continue() {
     let mut stdout = io::stdout();
     let prompt = "\rPress enter to continue... ";
@@ -106,30 +127,38 @@ pub fn prompt_enter_to_continue() {
     clear_console(None);
 }
 
+/// Simple utility method to print dialogue/narration using the text styling
 pub fn p(message: &str) {
     let mut stdout = io::stdout();
     stdout
-        .execute(SetForegroundColor(Colors::TEXT_COLOR))
+        .execute(SetForegroundColor(TBGColors::TEXT_COLOR))
         .unwrap();
     write!(stdout, "{}", message).unwrap();
     stdout.execute(ResetColor).unwrap();
 }
 
+/// Simple utility method to print a message using the "action-required" styling
 pub fn action_required(message: &str) -> String {
     // Write the colored message directly without adding a newline
     let formatted_message = format!(
         "{}{}{}",
-        Colors::fg_string(Colors::ACTION_COLOR), // Apply color
+        TBGColors::fg_string(TBGColors::ACTION_COLOR), // Apply color
         message,
-        Colors::fg_str_reset() // Reset the color
+        TBGColors::fg_str_reset() // Reset the color
     );
 
     return formatted_message;
 }
 
+/// One of the most commonly used methods in the app!
+///
+/// Prints a message (usually dialogue or narration) to the user,
+/// one char at a time. Helps to add some style/life to the game,
+/// and encourages them to actually read the storyline.
 pub fn simulate_typing(message: &str) {
     let mut stdout = io::stdout();
 
+    // TODO: Move typing speed to settings!
     let typing_speed = 25;
     let mut displayed_message = String::new();
 
@@ -142,9 +171,9 @@ pub fn simulate_typing(message: &str) {
         // Apply TEXT_COLOR to the message as it is typed
         let colored_message = format!(
             "{}{}{}",
-            Colors::fg_string(Colors::TEXT_COLOR), // Apply the color
+            TBGColors::fg_string(TBGColors::TEXT_COLOR), // Apply the color
             displayed_message,
-            Colors::fg_str_reset() // Reset the color after message
+            TBGColors::fg_str_reset() // Reset the color after message
         );
 
         // Draw the window with the colored message
@@ -157,6 +186,10 @@ pub fn simulate_typing(message: &str) {
     execute!(stdout, Show).expect("Failed to show cursor");
 }
 
+/// The main title screen! Just for fun.
+/// This will definitely be tweaked, but right now it's using a fun
+/// gradient. Not really in the perfect style of TBG, but I wanted
+/// to experiment with what I could do with color.
 pub fn title_screen() {
     clear_console(None);
 
@@ -178,6 +211,7 @@ pub fn title_screen() {
     draw_window(&formatted_message).unwrap();
 }
 
+/// Only called by the title_screen fn
 pub fn draw_title_with_gradient(message: &str) -> String {
     let lines: Vec<&str> = message.split('\n').collect();
     let mut output = String::new();
@@ -194,7 +228,8 @@ pub fn draw_title_with_gradient(message: &str) -> String {
     output
 }
 
-// Returns an RGB tuple
+/// Returns an RGB tuple
+/// Currently only used in the title screen rendering
 fn get_gradient_color(index: usize, total_lines: usize) -> (u8, u8, u8) {
     let red = (index as f32 / total_lines as f32 * 255.0).round() as u8;
     let green = ((total_lines as f32 - index as f32) / total_lines as f32 * 255.0).round() as u8;
@@ -202,10 +237,29 @@ fn get_gradient_color(index: usize, total_lines: usize) -> (u8, u8, u8) {
     (red, green, 128) // Return an RGB tuple
 }
 
+/// Syntactic sugar method to make termion's reset_cursor message more readable
 pub fn reset_cursor(stdout: &mut dyn Write) {
     write!(stdout, "{}", cursor::MoveTo(0, 0)).unwrap();
 }
 
+/// Parameters:
+/// - message (usually a prompt, providing details on the choice the user is going to make)
+/// - options (which will be printed out below the message)
+/// - selected_index (the caller is responsible for setting this)
+/// - use_simulate_typing (usually true during first render, then false in subsequent renders)
+///
+/// Output:
+/// - Should be a &str, which can then be rendered in some rendering loop
+///
+/// Usage:
+/// - The caller (the Menu struct), will loop, and print the menu until an option is selected
+/// - The print_menu fn is "dumb", in that it just displays the content--the caller
+///   is responsible for handling input and updating the display with the selected_index, etc.
+///
+// TODO: When the menu struct is implemented, move this to its impl block
+// FIXME: This method should not be calling draw_window!
+//        - This method should return a string slice, and that should
+//          be passed to the rendering loop, which can call draw_window!
 pub fn print_menu<T: std::fmt::Display>(
     message: &str,
     options: &Vec<T>,
@@ -221,6 +275,7 @@ pub fn print_menu<T: std::fmt::Display>(
     }
 
     // Draw initial empty window before typing starts
+    // FIXME: Is this really the right place to call draw_window?
     draw_window(&content)?;
 
     if use_simulate_typing {
@@ -231,12 +286,13 @@ pub fn print_menu<T: std::fmt::Display>(
             // Apply the text color using fg_string
             let colored_message = format!(
                 "{}{}{}", // Text color + typed message + reset color
-                Colors::fg_string(Colors::TEXT_COLOR),
+                TBGColors::fg_string(TBGColors::TEXT_COLOR),
                 typed_message,
-                Colors::fg_str_reset()
+                TBGColors::fg_str_reset()
             );
 
             // Ensure the rest of the content stays intact, just adding the typed message
+            // FIXME: Is this really the right place to call draw_window?
             draw_window(&format!(
                 "{}\n{}", // typed message + remaining content
                 colored_message,
@@ -255,9 +311,9 @@ pub fn print_menu<T: std::fmt::Display>(
     // Apply color to the message and reset it
     let colored_message = format!(
         "{}{}{}",
-        Colors::fg_string(Colors::TEXT_COLOR),
+        TBGColors::fg_string(TBGColors::TEXT_COLOR),
         message,
-        Colors::fg_str_reset()
+        TBGColors::fg_str_reset()
     );
     final_content.push_str(&format!("{}\n", colored_message));
 
@@ -266,16 +322,16 @@ pub fn print_menu<T: std::fmt::Display>(
         let colored_option = if i == selected_index {
             format!(
                 "{}> {}{}",
-                Colors::fg_string(Colors::ACTION_COLOR),
+                TBGColors::fg_string(TBGColors::ACTION_COLOR),
                 option,
-                Colors::fg_str_reset()
+                TBGColors::fg_str_reset()
             )
         } else {
             format!(
                 "  {}{}{}", // Apply ACTION_COLOR + option + reset color
-                Colors::fg_string(Colors::ACTION_COLOR),
+                TBGColors::fg_string(TBGColors::ACTION_COLOR),
                 option,
-                Colors::fg_str_reset()
+                TBGColors::fg_str_reset()
             )
         };
 
@@ -288,9 +344,32 @@ pub fn print_menu<T: std::fmt::Display>(
     Ok(())
 }
 
+/// This is one of the core functions of TBG!
+/// Use-cases:
+///  - During dialogue/narration mode (TODO: Come up with these modes, naming conventions)
+///  - *Not* during world/navigation mode (that uses Viewport::render())
+///  - The Viewport stuct's render fn and this draw_window fn are very similar
+///    - Might need to share some abstractions in the future
+///
+/// Responsibilities:
+///  - Take a string slice (usually a snippet of dialogue or narration)
+///  - Draw a frame around the edges of the user's terminal
+///  - Center the message in the frame
+///
+/// Other notes:
+///  - The real complexity of this method is in calculating the padding
+///     - The string slice is split into lines by the new-line char (\n)
+///     - The lines may contain ANSI colors, or multi-byte unicode chars--
+///       the padding calculations need to take into account these
+///       invisible or non-standard chars
+///  - Users can choose the border styling in the settings
+///  - The draw_window method can be used in tandem with the simulate_typing method
+///
 // FIXME: add a FrameType setting, use instead of hard-coding "NORMAL" borders
 //        - DO NOT want to query this from the GameState every time.
 //        - Want to load this at start of game, and only fetch if settings are updated.
+// FIXME: Can we validate that the content parameter actually fits inside of the terminal?
+//        - If it doesn't fit, how do we handle?
 pub fn draw_window(content: &str) -> io::Result<()> {
     let mut stdout = io::stdout();
 
@@ -300,23 +379,23 @@ pub fn draw_window(content: &str) -> io::Result<()> {
     let height = height.max(5);
 
     // Create borders
-    let top_border = format!("┏{}┓", "━".repeat((width - 2) as usize));
-    let bottom_border = format!("┗{}┛", "━".repeat((width - 2) as usize));
-    let empty_line = format!("┃{}┃", " ".repeat((width - 2) as usize));
+    // let top_border = format!("┏{}┓", "━".repeat((width - 2) as usize));
+    // let bottom_border = format!("┗{}┛", "━".repeat((width - 2) as usize));
+    // let empty_line = format!("┃{}┃", " ".repeat((width - 2) as usize));
     // TODO: Maybe use these "fantasy" style borders
-    // let repeat_count = (width - 2) / 3; // Required because the fantasy border is 3 chars long
-    // let remainder = (width - 2) % 3; // Required because the fantasy border is 3 chars long
-    // let top_border = format!(
-    //     "╭{}{}╮",
-    //     "╼◈╾".repeat(repeat_count as usize),
-    //     "━".repeat(remainder as usize)
-    // );
-    // let bottom_border = format!(
-    //     "╰{}{}╯",
-    //     "╼◈╾".repeat(repeat_count as usize),
-    //     "━".repeat(remainder as usize)
-    // );
-    // let empty_line = format!("║{}║", " ".repeat((width - 2) as usize));
+    let repeat_count = (width - 2) / 3; // Required because the fantasy border is 3 chars long
+    let remainder = (width - 2) % 3; // Required because the fantasy border is 3 chars long
+    let top_border = format!(
+        "╭{}{}╮",
+        "╼◈╾".repeat(repeat_count as usize),
+        "━".repeat(remainder as usize)
+    );
+    let bottom_border = format!(
+        "╰{}{}╯",
+        "╼◈╾".repeat(repeat_count as usize),
+        "━".repeat(remainder as usize)
+    );
+    let empty_line = format!("║{}║", " ".repeat((width - 2) as usize));
 
     // Regex to remove ANSI escape codes (including color codes and resets)
     let color_code_re = Regex::new(r"\x1b\[[0-9;]*m").unwrap();
@@ -340,7 +419,8 @@ pub fn draw_window(content: &str) -> io::Result<()> {
     for line in content_lines {
         // Remove color codes to calculate the padding based on the actual length
         let clean_line = color_code_re.replace_all(line, "");
-        let line_len = clean_line.len();
+        // Correct visual width, accounting for multibyte unicode characters!
+        let line_len = UnicodeWidthStr::width(clean_line.as_ref());
         let extra_padding = width as usize - 2 - line_len;
 
         // Split padding between left and right equally
@@ -366,4 +446,28 @@ pub fn draw_window(content: &str) -> io::Result<()> {
     // Print the bottom border
     write!(stdout, "{}\r", bottom_border)?;
     stdout.flush()
+}
+
+// FIXME: These should be in terminal_util_tests probably.
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    #[test]
+    fn test_create_player() {}
+
+    // TODO: Add tests! For everything!
+    // - TBGColors
+    //   - fg_string methods
+    // - get_input
+    // - clear_console
+    // - prompt_enter_to_continue
+    // - p
+    // - action_required
+    // - print_menu
+    // - draw_window
+    // - reset_cursor
+    // - title_screen
+    // - draw_title_with_gradient
+    // - get_gradient_color
 }

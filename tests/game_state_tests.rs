@@ -1,6 +1,6 @@
 #[cfg(test)]
 use tbg::test_utils;
-use tbg::{GameState, Player};
+use tbg::{world::navigation::Direction, GameState, Player};
 
 // Test saving a new game state
 #[test]
@@ -96,6 +96,7 @@ fn test_load_game_state() {
         current_stage: "dungeon_1".to_string(),
         x: 10,
         y: 20,
+        direction: Direction::Up,
         created_at: chrono::Local::now().naive_local(),
         updated_at: chrono::Local::now().naive_local(),
     };

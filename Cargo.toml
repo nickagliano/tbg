@@ -11,3 +11,5 @@ chrono = "0.4"                                                      # for dateti
 cpal = "0.15"                                                       # for music
 rand = "0.8"                                                        # used in music and probably other stuff soon
 regex = "1"
+unicode-width = "0.1"                                               # for calculating padding w/ weird chars
+sha2 = "0.10.8"                                                     # for generating player's seed

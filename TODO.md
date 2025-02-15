@@ -1,3 +1,4 @@
+- [ ] print_menu should *not* render! It should return a &str
 - [ ] Catch up on tests!
   - [ ] Test everything now that crossterm is implemented
   - [ ] Music tests

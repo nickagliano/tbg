@@ -16,7 +16,10 @@ pub fn get_connection(db_path: Option<&str>) -> Result<Connection> {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 uuid TEXT NOT NULL UNIQUE,
                 name TEXT NOT NULL,
-                gender TEXT NOT NULL,
+                gender INTEGER NOT NULL,
+                height INTEGER NOT NULL,
+                background INTEGER NOT NULL,
+                main_arc INTEGER NOT NULL,
                 created_at TIMESTAMP NOT NULL,
                 updated_at TIMESTAMP NOT NULL
         )",
@@ -30,6 +33,7 @@ pub fn get_connection(db_path: Option<&str>) -> Result<Connection> {
             "CREATE TABLE IF NOT EXISTS {} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 player_id INTEGER NOT NULL,
+                interface_mode INTEGER NOT NULL DEFAULT 0, -- enum for mode (dialogue, free-roaming, battle)
                 current_epic TEXT NOT NULL,
                 current_stage TEXT NOT NULL,
                 x INTEGER NOT NULL DEFAULT 0, -- X coordinate of the player

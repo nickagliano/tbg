@@ -1,7 +1,6 @@
 use crate::db;
-use crate::models::game_state::GameState;
-use crate::models::player::Gender;
-use crate::models::player::Player;
+use crate::models::game_state;
+use crate::models::player;
 use crate::music::music_player::MusicPlayer;
 use crate::terminal_utils;
 use crate::world::viewport::Viewport;
@@ -9,6 +8,10 @@ use crossterm::cursor::{Hide, Show};
 use crossterm::event::{self, Event, KeyCode};
 use crossterm::execute;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+use game_state::game_state::GameState;
+use player::gender::Gender;
+use player::height::Height;
+use player::player::Player;
 use std::error::Error;
 use std::io;
 use std::time::Duration;
@@ -31,39 +34,19 @@ impl GameEngine {
 
     pub fn start(&mut self) {
         self.music_player.play();
-        self.event_loop();
         self.start_game().expect("Failed to start game");
     }
 
-    pub fn event_loop(&mut self) {
-        enable_raw_mode().expect("Failed to enable raw mode");
-        while let Ok(true) = event::poll(Duration::from_millis(100)) {
-            if let Ok(evt) = event::read() {
-                match evt {
-                    Event::Key(key_event) => match key_event.code {
-                        KeyCode::Char('q') => {
-                            println!("Quitting game!!");
-                            break;
-                        }
-                        KeyCode::Char('t') => println!("Toggling music..."),
-                        KeyCode::Char('r') => println!("Playing music..."),
-                        KeyCode::Enter => println!("Continue"),
-                        _ => println!("Unhandled key: {:?}", key_event.code),
-                    },
-                    Event::Resize(_, _) => {
-                        self.viewport.update_size();
-                        println!(
-                            "Viewport resized: {}x{}",
-                            self.viewport.width, self.viewport.height
-                        );
-                    }
-                    _ => {}
-                }
-            }
-        }
-        disable_raw_mode().expect("Failed to disable raw mode");
-    }
-
+    // FIXME: Need to abstract this start_game fn into stages (current_stage),
+    //        epics (current_epic), and figure out how to switch
+    //        between "modes".
+    //
+    //        Need to define "modes".
+    //        - Dialogue mode vs world navigation mode?
+    //        - Battle mode
+    //
+    //        Need to abstract out
+    //
     pub fn start_game(&mut self) -> Result<(), Box<dyn Error>> {
         terminal_utils::title_screen();
         terminal_utils::prompt_enter_to_continue();
@@ -99,8 +82,8 @@ impl GameEngine {
                     name = terminal_utils::get_input();
                 }
 
-                // We save with a default Gender. This gets overwritten in the next step.
-                let new_player = Player::new(name.clone(), Gender::Male);
+                // We save with a default Gender and Height. These get overwritten in the next steps.
+                let new_player = Player::new(name.clone(), Gender::Male, Height::Average);
                 new_player.create(&conn)?;
 
                 // Grab the newly created player's id from the database
@@ -143,10 +126,7 @@ impl GameEngine {
             // Reload player
             player = Player::load(&conn)?.unwrap();
 
-            terminal_utils::simulate_typing(&format!(
-                "You selected: {}",
-                player.gender.to_string()
-            ));
+            terminal_utils::simulate_typing(&format!("You selected: {}", player.gender));
             terminal_utils::prompt_enter_to_continue();
         }
 
@@ -165,11 +145,7 @@ impl GameEngine {
         let mut stdout = io::stdout();
         enable_raw_mode().expect("Failed to enable raw mode");
 
-        let options = vec![
-            Gender::Male.to_string(),
-            Gender::Female.to_string(),
-            Gender::Unspecified.to_string(),
-        ];
+        let options = vec![Gender::Male, Gender::Female, Gender::Unspecified];
         let message = "Please select your gender:";
         let mut selected_index = 0;
 
@@ -197,7 +173,7 @@ impl GameEngine {
                         disable_raw_mode().expect("Failed to disable raw mode");
                         execute!(stdout, Show).expect("Cursor failed to show");
                         terminal_utils::clear_console(None);
-                        return Gender::from_string(&options[selected_index]);
+                        return options[selected_index].clone();
                     }
                     _ => {
                         // FIXME: Handle this better? Re-pick gender?

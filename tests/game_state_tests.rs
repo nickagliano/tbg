@@ -1,3 +1,4 @@
+use tbg::game_engine::InterfaceMode;
 #[cfg(test)]
 use tbg::test_utils;
 use tbg::{world::navigation::Direction, GameState, Player};
@@ -10,7 +11,8 @@ fn test_save_game_state() {
     // Setup player for gamestate to belong to
     let player = Player::new(
         "Test Player".to_string(),
-        tbg::models::player::Gender::Female,
+        tbg::models::player::gender::Gender::Female,
+        tbg::models::player::height::Height::Average,
     );
 
     player.create(&conn).unwrap();
@@ -46,7 +48,8 @@ fn test_update_game_state() {
     // Setup player for gamestate to belong to
     let player = Player::new(
         "Test Player".to_string(),
-        tbg::models::player::Gender::Female,
+        tbg::models::player::gender::Gender::Female,
+        tbg::models::player::height::Height::Tall,
     );
 
     player.create(&conn).unwrap();
@@ -83,7 +86,8 @@ fn test_load_game_state() {
 
     let player = Player::new(
         "Test Player".to_string(),
-        tbg::models::player::Gender::Female,
+        tbg::models::player::gender::Gender::Female,
+        tbg::models::player::height::Height::Tall,
     );
 
     player.create(&conn).unwrap();
@@ -92,6 +96,7 @@ fn test_load_game_state() {
 
     let game_state = GameState {
         player_id: loaded_player.id,
+        interface_mode: InterfaceMode::Dialogue,
         current_epic: "level_1".to_string(),
         current_stage: "dungeon_1".to_string(),
         x: 10,
@@ -109,6 +114,7 @@ fn test_load_game_state() {
     assert!(loaded_game_state.is_some());
     let loaded_game_state = loaded_game_state.unwrap();
     assert_eq!(loaded_game_state.player_id, loaded_player.id);
+    assert_eq!(loaded_game_state.interface_mode, InterfaceMode::Dialogue);
     assert_eq!(loaded_game_state.current_epic, "level_1");
     assert_eq!(loaded_game_state.current_stage, "dungeon_1");
     assert_eq!(loaded_game_state.x, 10);

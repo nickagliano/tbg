@@ -7,7 +7,11 @@ use tbg::Player;
 fn test_save_player() {
     let conn = &test_utils::setup_test_db().conn;
 
-    let player = Player::new("Test Player".to_string(), tbg::models::player::Gender::Male);
+    let player = Player::new(
+        "Test Player".to_string(),
+        tbg::models::player::gender::Gender::Male,
+        tbg::models::player::height::Height::Tall,
+    );
 
     player.create(&conn).unwrap();
 
@@ -34,7 +38,8 @@ fn test_load_player() {
 
     let player = Player::new(
         "Test Player W Gender".to_string(),
-        tbg::models::player::Gender::Female,
+        tbg::models::player::gender::Gender::Female,
+        tbg::models::player::height::Height::Short,
     );
 
     player.create(&conn).unwrap();
@@ -44,5 +49,12 @@ fn test_load_player() {
     assert!(loaded_player.is_some());
     let unwrapped_loaded_player = loaded_player.unwrap();
     assert_eq!(unwrapped_loaded_player.name, "Test Player W Gender");
-    assert_eq!(unwrapped_loaded_player.gender.to_db_string(), "female");
+    assert_eq!(
+        unwrapped_loaded_player.gender,
+        tbg::models::player::gender::Gender::Female
+    );
+    assert_eq!(
+        unwrapped_loaded_player.height,
+        tbg::models::player::height::Height::Short
+    );
 }

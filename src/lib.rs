@@ -3,8 +3,8 @@ pub mod db;
 pub mod game_engine;
 pub mod models;
 pub mod music;
-pub use models::game_state::GameState;
-pub use models::player::{Gender, Player};
+pub use models::game_state::game_state::GameState;
+pub use models::player::player::Player;
 pub use music::music_player::MusicPlayer;
 pub mod terminal_utils;
 pub use terminal_utils::{

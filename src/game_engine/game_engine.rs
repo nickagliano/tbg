@@ -4,10 +4,6 @@ use crate::models::player;
 use crate::music::music_player::MusicPlayer;
 use crate::terminal_utils;
 use crate::world::viewport::Viewport;
-use crossterm::cursor::{Hide, Show};
-use crossterm::event::{self, Event, KeyCode};
-use crossterm::execute;
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use game_state::game_state::GameState;
 use player::gender::Gender;
 use player::height::Height;
@@ -40,12 +36,6 @@ impl GameEngine {
     // FIXME: Need to abstract this start_game fn into stages (current_stage),
     //        epics (current_epic), and figure out how to switch
     //        between "modes".
-    //
-    //        Need to define "modes".
-    //        - Dialogue mode vs world navigation mode?
-    //        - Battle mode
-    //
-    //        Need to abstract out
     //
     pub fn start_game(&mut self) -> Result<(), Box<dyn Error>> {
         terminal_utils::title_screen();
@@ -113,7 +103,8 @@ impl GameEngine {
 
         if game_state.current_stage == "character_creation" {
             // Start gender selection experience
-            let gender = self.select_gender();
+            let options = vec![Gender::Male, Gender::Female, Gender::Unspecified];
+            let gender = self.menu_select("Please select your gender:", options);
 
             // Update player's gender
             player.gender = gender.clone();
@@ -136,58 +127,5 @@ impl GameEngine {
         // TODO: Implement map piece here.
 
         Ok(())
-    }
-
-    // FIXME: Abstract out this select gender logic to be reusable as a "menu_select" or something.
-    //        - like buying things from a shop, other character configuration, etc.
-    //        - selecting a move in a battle will be similar
-    pub fn select_gender(&self) -> Gender {
-        let mut stdout = io::stdout();
-        enable_raw_mode().expect("Failed to enable raw mode");
-
-        let options = vec![Gender::Male, Gender::Female, Gender::Unspecified];
-        let message = "Please select your gender:";
-        let mut selected_index = 0;
-
-        // Hide the cursor before selection starts
-        execute!(stdout, Hide).expect("Cursor failed to hide");
-
-        terminal_utils::print_menu(message, &options, selected_index, true)
-            .expect("Printing gender menu failed");
-
-        loop {
-            // Block and wait for a key event
-            if let Ok(Event::Key(key_event)) = event::read() {
-                match key_event.code {
-                    KeyCode::Up => {
-                        if selected_index > 0 {
-                            selected_index -= 1;
-                        }
-                    }
-                    KeyCode::Down => {
-                        if selected_index < options.len() - 1 {
-                            selected_index += 1;
-                        }
-                    }
-                    KeyCode::Enter => {
-                        disable_raw_mode().expect("Failed to disable raw mode");
-                        execute!(stdout, Show).expect("Cursor failed to show");
-                        terminal_utils::clear_console(None);
-                        return options[selected_index].clone();
-                    }
-                    _ => {
-                        // FIXME: Handle this better? Re-pick gender?
-                        terminal_utils::clear_console(None);
-                        execute!(stdout, Show).expect("Cursor failed to show");
-                        return Gender::Unspecified;
-                    }
-                }
-
-                // Redraw the menu after every key press to update the selection
-                // Set use_simulate_typing to false so it doesn't re-type when user updates selection
-                terminal_utils::print_menu(message, &options, selected_index, false)
-                    .expect("Printing menu failed");
-            }
-        }
     }
 }

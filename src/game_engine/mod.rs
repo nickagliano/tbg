@@ -1,5 +1,6 @@
 pub mod game_engine;
 pub mod game_event;
+pub mod interactions;
 use rusqlite::types::FromSql;
 use rusqlite::types::{FromSqlResult, ValueRef};
 use rusqlite::ToSql;
@@ -9,6 +10,7 @@ pub enum InterfaceMode {
     Dialogue,
     WorldNavigation,
     Battle,
+    BookBuilder,
 }
 
 impl ToSql for InterfaceMode {
@@ -17,6 +19,7 @@ impl ToSql for InterfaceMode {
             InterfaceMode::Dialogue => 0,
             InterfaceMode::WorldNavigation => 1,
             InterfaceMode::Battle => 2,
+            InterfaceMode::BookBuilder => 3,
         };
         Ok(n.into())
     }
@@ -28,6 +31,7 @@ impl FromSql for InterfaceMode {
             0 => Ok(InterfaceMode::Dialogue),
             1 => Ok(InterfaceMode::WorldNavigation),
             2 => Ok(InterfaceMode::Battle),
+            3 => Ok(InterfaceMode::BookBuilder),
             _ => Err(rusqlite::types::FromSqlError::InvalidType),
         }
     }

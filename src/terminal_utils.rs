@@ -1,13 +1,9 @@
 use crossterm::{
-    cursor, execute,
-    style::{Color as TermionColor, SetForegroundColor},
-    terminal::{self, ClearType},
-};
-use crossterm::{
-    cursor::{Hide, Show},
+    cursor::{self, Hide, Show},
     event::{self, Event, KeyCode},
-    style::ResetColor,
-    terminal::Clear,
+    execute,
+    style::{Color as TermionColor, ResetColor, SetForegroundColor},
+    terminal::{self, Clear, ClearType},
     ExecutableCommand,
 };
 use regex::Regex;

@@ -43,18 +43,21 @@ impl GameState {
         )
     }
 
-    pub fn create(&self, conn: &Connection) -> Result<()> {
+    pub fn create(&self, conn: &Connection) -> GameState {
         conn.execute(
             &format!(
                 "INSERT INTO {} (interface_mode, current_epic, current_stage, player_id, x, y, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                 GAME_STATE_TABLE
             ),
             rusqlite::params![self.interface_mode, self.current_epic, self.current_stage, self.player_id, self.x, self.y, self.created_at, self.created_at],
-        )?;
-        Ok(())
+        ).unwrap();
+
+        return GameState::load_for_player(&conn, self.player_id)
+            .unwrap()
+            .unwrap();
     }
 
-    pub fn update(&self, conn: &Connection) -> Result<()> {
+    pub fn update(&self, conn: &Connection) -> GameState {
         conn.execute(
             &format!(
                 "UPDATE {}
@@ -70,8 +73,12 @@ impl GameState {
                 chrono::Local::now().naive_local(),
                 self.player_id
             ],
-        )?;
-        Ok(())
+        )
+        .unwrap();
+
+        return GameState::load_for_player(&conn, self.player_id)
+            .unwrap()
+            .unwrap();
     }
 
     pub fn load_for_player(conn: &Connection, player_id: i32) -> Result<Option<Self>> {

@@ -5,11 +5,15 @@ mod game_engine;
 pub mod models;
 pub mod music;
 pub mod terminal_utils;
+pub mod tui;
 pub mod world;
 use args::parse_args;
 pub use db::connection::get_connection;
 pub use db::save::{delete_save, save_exists};
 use game_engine::game_engine::GameEngine;
+pub use game_engine::interactions;
+pub use game_engine::routines;
+pub use models::dialogue;
 pub use world::navigation;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

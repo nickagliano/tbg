@@ -1,30 +1,37 @@
 use crate::db;
+use crate::game_engine::routines;
+use crate::models::dialogue::dialogue;
 use crate::models::game_state;
 use crate::models::player;
 use crate::music::music_player::MusicPlayer;
 use crate::terminal_utils;
-use crate::world::viewport::Viewport;
 use game_state::game_state::GameState;
 use player::gender::Gender;
 use player::height::Height;
 use player::player::Player;
+// TODO: Add battle::BattleRoutine, book_builder::BookBuilderRoutine
+use super::InterfaceMode;
+use routines::{
+    book_tutorial::BookTutorialRoutine, title_menu::TitleMenuRoutine,
+    world_navigation::WorldNavigationRoutine,
+};
+use rusqlite::{Connection, Result};
 use std::error::Error;
-use std::io;
-use std::time::Duration;
 
 pub struct GameEngine {
     music_player: MusicPlayer,
-    viewport: Viewport,
+    db_conn: Connection,
 }
 
 impl GameEngine {
     pub fn new() -> Self {
         let music_player = MusicPlayer::new();
-        let viewport = Viewport::new();
+        let db_conn = db::connection::get_connection(None)
+            .expect("Failed to initialize database connection in game engine constructor");
 
         Self {
             music_player,
-            viewport,
+            db_conn,
         }
     }
 
@@ -33,28 +40,40 @@ impl GameEngine {
         self.start_game().expect("Failed to start game");
     }
 
-    // FIXME: Need to abstract this start_game fn into stages (current_stage),
-    //        epics (current_epic), and figure out how to switch
-    //        between "modes".
-    //
+    // FIXME: Need to implement some of the concepts I've been working on in this main flow
+    //        - Epics and stages
+    //        - GameEngine::Routines and GameEngine::Interactions
     pub fn start_game(&mut self) -> Result<(), Box<dyn Error>> {
-        terminal_utils::title_screen();
-        terminal_utils::prompt_enter_to_continue();
+        // Run title screen and menu routine
+        // - Show title screen
+        // - TODO: Let user select save file
+        TitleMenuRoutine.new().run();
 
-        let conn = db::connection::get_connection(None)?;
+        // FIXME: Need to figure out how to use Dialogue to drive this
+        //        instead of hard-coding it all into the game engine
+        //
+        //        DialogueRoutine should take the dialogue as input then
+        //        drive for a while?
+        //
+        //        The complexity of dialogue, and dialogue routine is
+        //        sort of blocking me... So I'm just going to ignore
+        //        that for a while and get some of the game actually
+        //        implemented before I try to abstract too much.
+        //
+        //        Maybe if I just start building the story out,
+        //        the dialogue abstraction will become more clear.
+        //
+        //        TLDR; hard-coded dialogue is fine for now.
+        //
+        let _dialogue = dialogue::load_dialogue("character_creation");
+
+        // Start player create
         let mut is_new_player = false;
 
-        // Start game by either welcoming back player, or
-        // guiding them through the intro
-        // FIXME: Return a player from this, instead of having to reload
-        match Player::load(&conn)? {
-            Some(player) => {
-                terminal_utils::simulate_typing(&format!(
-                    "Welcome back, {}! Ready to continue?",
-                    player.name
-                ));
-                player
-            }
+        // Start game by loading player, or
+        // guiding them through the character creation intro
+        let mut player = match Player::load(&self.db_conn)? {
+            Some(player) => player,
             None => {
                 // New player is being created
                 is_new_player = true;
@@ -73,27 +92,22 @@ impl GameEngine {
                 }
 
                 // We save with a default Gender and Height. These get overwritten in the next steps.
-                let new_player = Player::new(name.clone(), Gender::Male, Height::Average);
-                new_player.create(&conn)?;
+                let mut new_player = Player::new(name.clone(), Gender::Male, Height::Average);
+                new_player = new_player.create(&self.db_conn);
 
                 // Grab the newly created player's id from the database
                 // and create the player's game state
-                GameState::new(Player::load(&conn).unwrap().unwrap().id)
-                    .create(&conn)
-                    .unwrap();
+                GameState::new(new_player.id).create(&self.db_conn);
 
                 terminal_utils::simulate_typing(&format!("Hello, {}!", new_player.name));
+                terminal_utils::prompt_enter_to_continue();
+
                 new_player
             }
         };
 
-        // Reload player
-        let mut player = Player::load(&conn)?.unwrap();
-
         // Reload game state
-        let mut game_state = GameState::load_for_player(&conn, player.id)?.unwrap();
-
-        terminal_utils::prompt_enter_to_continue();
+        let mut game_state = GameState::load_for_player(&self.db_conn, player.id)?.unwrap();
 
         // Give special message if player is returning, but never completed character creation
         if !is_new_player && game_state.current_stage == "character_creation" {
@@ -108,23 +122,31 @@ impl GameEngine {
 
             // Update player's gender
             player.gender = gender.clone();
-            player.update(&conn)?;
+            player.update(&self.db_conn)?;
 
             // Update game state, finished with choosing their name and gender
             game_state.current_stage = "book_tutorial".to_string();
-            game_state.update(&conn)?;
+            game_state.update(&self.db_conn);
 
             // Reload player
-            player = Player::load(&conn)?.unwrap();
+            player = Player::load(&self.db_conn)?.unwrap();
 
             terminal_utils::simulate_typing(&format!("You selected: {}", player.gender));
             terminal_utils::prompt_enter_to_continue();
         }
 
-        terminal_utils::simulate_typing("Now, let's start the adventure!");
+        terminal_utils::simulate_typing("Let's resume the adventure!");
         terminal_utils::prompt_enter_to_continue();
 
-        // TODO: Implement map piece here.
+        let new_inferface_mode = WorldNavigationRoutine::new(game_state).run();
+        // let new_inferface_mode = InterfaceMode::BookBuilder;  // swap out for easier development
+
+        // Handle new interface mode (for now this is just BookBuilder)
+        if new_inferface_mode == InterfaceMode::BookBuilder {
+            BookTutorialRoutine::new(player).run();
+        } else {
+            panic!("For development purposes, this is just handling BookBuilder")
+        }
 
         Ok(())
     }

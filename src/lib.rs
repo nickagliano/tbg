@@ -12,4 +12,5 @@ pub use terminal_utils::{
     simulate_typing,
 };
 pub mod test_utils;
+pub mod tui;
 pub mod world;

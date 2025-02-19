@@ -1,6 +1,7 @@
 pub mod game_engine;
 pub mod game_event;
 pub mod interactions;
+pub mod routines;
 use rusqlite::types::FromSql;
 use rusqlite::types::{FromSqlResult, ValueRef};
 use rusqlite::ToSql;

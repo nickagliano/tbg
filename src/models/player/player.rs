@@ -3,17 +3,15 @@ use crate::models::game_state::main_arc::MainArc;
 use crate::models::player::background::Background;
 use crate::models::player::gender::Gender;
 use crate::models::player::height::Height;
-use chrono::NaiveDateTime; // For handling timestamps
+use chrono::NaiveDateTime;
 use rusqlite::Error as RusqliteError;
 use rusqlite::{params, Connection, Result};
 use sha2::{Digest, Sha256};
-use uuid::Uuid;
 
 // FIXME: Use getters, not pub values
 #[derive(Debug, Clone, PartialEq)]
 pub struct Player {
     pub id: i32,
-    pub uuid: Uuid,
     pub name: String,
     pub gender: Gender,
     pub height: Height,
@@ -28,7 +26,6 @@ impl Player {
     pub fn new(name: String, gender: Gender, height: Height) -> Self {
         Player {
             id: 0, // DB will auto-increment this, but we need to pass it
-            uuid: Uuid::new_v4(),
             name,
             gender,
             height,
@@ -45,22 +42,21 @@ impl Player {
 
     // Load the most recent player by the updated_at field
     pub fn load_most_recent(conn: &Connection) -> Result<Option<Self>> {
+        // FIXME: use player table const
         let mut stmt = conn.prepare(
-            "SELECT id, uuid, name, gender, height, background, main_arc, created_at, updated_at FROM players ORDER BY updated_at DESC LIMIT 1",
+        &format!("SELECT id, name, gender, height, background, main_arc, created_at, updated_at FROM {} ORDER BY updated_at DESC LIMIT 1", PLAYER_TABLE),
         )?;
         let mut player_iter = stmt.query_map([], |row| {
             let id: i32 = row.get(0)?;
-            let uuid: String = row.get(1)?;
-            let name: String = row.get(2)?;
-            let gender: Gender = row.get(3)?;
-            let height: Height = row.get(4)?;
-            let background: Background = row.get(5)?;
-            let main_arc: MainArc = row.get(6)?;
-            let created_at: NaiveDateTime = row.get(7)?;
-            let updated_at: NaiveDateTime = row.get(8)?;
+            let name: String = row.get(1)?;
+            let gender: Gender = row.get(2)?;
+            let height: Height = row.get(3)?;
+            let background: Background = row.get(4)?;
+            let main_arc: MainArc = row.get(5)?;
+            let created_at: NaiveDateTime = row.get(6)?;
+            let updated_at: NaiveDateTime = row.get(7)?;
             Ok(Player {
                 id,
-                uuid: Uuid::parse_str(&uuid).unwrap(),
                 name,
                 gender,
                 height,
@@ -78,47 +74,11 @@ impl Player {
         Ok(None)
     }
 
-    // Load a player by UUID
-    pub fn load_by_uuid(conn: &Connection, player_uuid: &Uuid) -> Result<Option<Self>> {
-        let mut stmt = conn.prepare(
-            "SELECT id, uuid, name, gender, height, background, main_arc, created_at, updated_at FROM players WHERE uuid = ?1",
-        )?;
-        let player_iter = stmt.query_map([player_uuid.to_string()], |row| {
-            let id: i32 = row.get(0)?;
-            let uuid: String = row.get(1)?;
-            let name: String = row.get(2)?;
-            let gender: Gender = row.get(3)?;
-            let height: Height = row.get(4)?;
-            let background: Background = row.get(5)?;
-            let main_arc: MainArc = row.get(6)?;
-            let created_at: NaiveDateTime = row.get(4)?;
-            let updated_at: NaiveDateTime = row.get(5)?;
-            Ok(Player {
-                id,
-                uuid: Uuid::parse_str(&uuid).unwrap(),
-                name,
-                gender,
-                height,
-                background,
-                main_arc,
-                created_at,
-                updated_at,
-            })
-        })?;
-
-        for player in player_iter {
-            return Ok(Some(player?));
-        }
-
-        Ok(None)
-    }
-
-    // Save the player to the database
-    pub fn create(&self, conn: &Connection) -> Result<()> {
+    // Save the player to the database and return
+    pub fn create(&self, conn: &Connection) -> Player {
         conn.execute(
-            "INSERT INTO players (uuid, name, gender, height, background, main_arc, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            "INSERT INTO players (name, gender, height, background, main_arc, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             rusqlite::params![
-                self.uuid.to_string(),
                 self.name,
                 self.gender,
                 self.height,
@@ -127,8 +87,9 @@ impl Player {
                 self.created_at,
                 self.created_at // Default updated at to created at value
             ],
-        )?;
-        Ok(())
+        ).unwrap();
+
+        return Player::load(conn).unwrap().unwrap();
     }
 
     pub fn update(&self, conn: &Connection) -> Result<()> {

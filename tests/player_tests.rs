@@ -13,12 +13,9 @@ fn test_save_player() {
         tbg::models::player::height::Height::Tall,
     );
 
-    player.create(&conn).unwrap();
+    let created_player = player.create(&conn);
 
-    // Verify that the player is saved correctly
-    let loaded_player = Player::load(&conn).unwrap();
-    assert!(loaded_player.is_some());
-    assert_eq!(loaded_player.unwrap().name, "Test Player");
+    assert_eq!(created_player.name, "Test Player");
 }
 
 // Test loading a player when there is no player in the DB
@@ -42,19 +39,15 @@ fn test_load_player() {
         tbg::models::player::height::Height::Short,
     );
 
-    player.create(&conn).unwrap();
+    let created_player = player.create(&conn);
 
-    // Load the player back from the database
-    let loaded_player = Player::load(&conn).unwrap();
-    assert!(loaded_player.is_some());
-    let unwrapped_loaded_player = loaded_player.unwrap();
-    assert_eq!(unwrapped_loaded_player.name, "Test Player W Gender");
+    assert_eq!(created_player.name, "Test Player W Gender");
     assert_eq!(
-        unwrapped_loaded_player.gender,
+        created_player.gender,
         tbg::models::player::gender::Gender::Female
     );
     assert_eq!(
-        unwrapped_loaded_player.height,
+        created_player.height,
         tbg::models::player::height::Height::Short
     );
 }

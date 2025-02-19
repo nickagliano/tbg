@@ -15,22 +15,14 @@ fn test_save_game_state() {
         tbg::models::player::height::Height::Average,
     );
 
-    player.create(&conn).unwrap();
+    let loaded_player = player.create(&conn);
 
-    let loaded_player = Player::load(&conn).unwrap().unwrap(); // This isn't good. Double unwrap?
+    let game_state = GameState::new(loaded_player.id).create(&conn);
 
-    let game_state = GameState::new(loaded_player.id);
-
-    game_state.create(&conn).unwrap();
-
-    // Load the game state from the database
-    let loaded_game_state = GameState::load_for_player(&conn, 1).unwrap();
-    assert!(loaded_game_state.is_some());
-    let loaded_game_state = loaded_game_state.unwrap();
-    assert_eq!(loaded_game_state.player_id, 1);
-    assert_eq!(loaded_game_state.current_stage, "character_creation");
-    assert_eq!(loaded_game_state.x, 0);
-    assert_eq!(loaded_game_state.y, 0);
+    assert_eq!(game_state.player_id, 1);
+    assert_eq!(game_state.current_stage, "character_creation");
+    assert_eq!(game_state.x, 0);
+    assert_eq!(game_state.y, 0);
 }
 
 #[test]
@@ -52,14 +44,12 @@ fn test_update_game_state() {
         tbg::models::player::height::Height::Tall,
     );
 
-    player.create(&conn).unwrap();
+    let created_player = player.create(&conn);
 
-    let loaded_player = Player::load(&conn).unwrap().unwrap(); // This isn't good. Double unwrap?
-
-    let mut game_state = GameState::new(loaded_player.id);
+    let mut game_state = GameState::new(created_player.id);
 
     // Save initial game state
-    game_state.create(&conn).unwrap();
+    game_state.create(&conn);
 
     // Modify game state
     game_state.current_stage = "level_2".to_string();
@@ -67,17 +57,12 @@ fn test_update_game_state() {
     game_state.y = 84;
 
     // Update in database
-    game_state.update(&conn).unwrap();
-
-    // Load the updated game state
-    let loaded_game_state = GameState::load_for_player(&conn, loaded_player.id).unwrap();
-    assert!(loaded_game_state.is_some());
-    let loaded_game_state = loaded_game_state.unwrap();
+    let updated_game_state = game_state.update(&conn);
 
     // Verify updates persisted
-    assert_eq!(loaded_game_state.current_stage, "level_2");
-    assert_eq!(loaded_game_state.x, 42);
-    assert_eq!(loaded_game_state.y, 84);
+    assert_eq!(updated_game_state.current_stage, "level_2");
+    assert_eq!(updated_game_state.x, 42);
+    assert_eq!(updated_game_state.y, 84);
 }
 
 #[test]
@@ -90,9 +75,7 @@ fn test_load_game_state() {
         tbg::models::player::height::Height::Tall,
     );
 
-    player.create(&conn).unwrap();
-
-    let loaded_player = Player::load(&conn).unwrap().unwrap(); // This isn't good. Double unwrap?
+    let loaded_player = player.create(&conn);
 
     let game_state = GameState {
         player_id: loaded_player.id,
@@ -107,7 +90,7 @@ fn test_load_game_state() {
     };
 
     // Save game state
-    game_state.create(&conn).unwrap();
+    game_state.create(&conn);
 
     // Load the saved game state
     let loaded_game_state = GameState::load_for_player(&conn, loaded_player.id).unwrap();

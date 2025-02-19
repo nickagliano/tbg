@@ -1,8 +1,19 @@
 # TODO:
 
 ## High priority
-- [ ] just use FromSql for height and gender, clean up Gender's unnecessary complexity
-- [ ] Move player and related files into new folder nested in models.
+- [ ] Add seeds
+  - [ ] Don't seed, and don't try to create tables with each db connection!
+    - [ ] For now, just do a trivial check and assert that the last item from seeds exists
+- [ ] Figure out how to abstract the main interfaces (world nav, dialogue/narration, book builder, battle)
+  - [x] Bigger than the `game_engines/interactions/`. Routines?
+  - [x] Starts and ends raw mode?
+  - [ ] Can wrap whatever this concept is in amazing error handling + break down logic (so we don't get stuck in raw mode, etc.)
+- [ ] Add battle models. Turns, BattleLog, ... everything...
+- [ ] Dialogue system
+  - [ ] Add dialogue models. Dialogue history, decisions, etc.
+  - [ ] How to use dialogue routine?
+- [ ] Add BookBuilder experience
+- [ ] Add Battle experience
 - [ ] print_menu should *not* render! It should return a &str
 - [ ] Return the player id when creating the player instead of having to load it afterwards.
 - [ ] Return the game state id when creating the game state instead of having to load it afterwards.
@@ -32,9 +43,12 @@
 - [ ] Think about how translations would work
   - [ ] Storing text in a way that it can easily be translated (like in Rails, the `config/locales/{language}.yml`)
 - [ ] With a few adaptations, and if it's considered during development, this game has the potenital to be very accessible
-
+- [ ] Right now the GameEngine::Routines::Battle routine is setup for Player vs NPC. I've decided to focus on PvNPC,
+      without worrying too much about PvP. It's in the back of my head but I can't overengineer PvNPC right now.
 
 
 ## Done!
+- [x] Move player and related files into new folder nested in models.
+- [x] just use FromSql for height and gender, clean up Gender's unnecessary complexity
 - [x] Add a title screen / landing page
   - [x] Add an ASCII title for THE BOOK GAME

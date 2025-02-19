@@ -13,3 +13,5 @@ rand = "0.8"                                                        # used for r
 regex = "1"
 unicode-width = "0.1"                                               # for calculating padding w/ weird chars TODO: Remove this
 sha2 = "0.10.8"                                                     # for generating player's seed
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"                                                  # for parsing dialogue from files

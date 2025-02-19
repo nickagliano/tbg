@@ -1,5 +1,5 @@
 // TODO: Use this
-struct Menu<'a, T: std::fmt::Display> {
+struct _Menu<'a, T: std::fmt::Display> {
     message: &'a str,
     options: Vec<T>,
     selected_index: usize,

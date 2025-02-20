@@ -13,6 +13,7 @@ pub use db::save::{delete_save, save_exists};
 use game_engine::game_engine::GameEngine;
 pub use game_engine::interactions;
 pub use game_engine::routines;
+pub use models::book::page;
 pub use models::dialogue;
 pub use world::navigation;
 

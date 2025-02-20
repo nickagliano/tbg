@@ -9,7 +9,6 @@ use std::io::{self, Write};
 //       - Could just hardcode a map of multibyte chars I'm using
 use unicode_width::UnicodeWidthStr;
 
-// TODO: Use this instead of terminal utils
 pub struct Window<'a> {
     pub content: &'a str,
 }

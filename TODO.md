@@ -1,6 +1,10 @@
 # TODO:
 
 ## High priority
+- [ ] Enhance routines
+  - [ ] Abstract out the raw/un-raw logic. As a "Routine" trait?
+- [ ] Add a loop (in game engine? In routines?) that stops the game and displays "window too small" if under
+      a certain min height or min width
 - [ ] Add seeds
   - [ ] Don't seed, and don't try to create tables with each db connection!
     - [ ] For now, just do a trivial check and assert that the last item from seeds exists

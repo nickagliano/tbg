@@ -1,10 +1,51 @@
-// TODO: Use this
-struct Window<'a, T: std::fmt::Display> {
-    content: &'a str,
+use crossterm::{
+    cursor, execute,
+    terminal::{self, Clear, ClearType},
+};
+use regex::Regex;
+use std::io::{self, Write};
+// For calculating visual width of multibyte unicode chars
+// TODO: I'd like to get rid of this dependency if possible
+//       - Could just hardcode a map of multibyte chars I'm using
+use unicode_width::UnicodeWidthStr;
+
+// TODO: Use this instead of terminal utils
+pub struct Window<'a> {
+    pub content: &'a str,
 }
 
-impl Window {
-    pub fn draw_window(&self) -> io::Result<()> {
+// FIXME: add a FrameType setting, use instead of hard-coding "NORMAL" borders
+//        - DO NOT want to query this from the GameState every time.
+//        - Want to load this at start of game, and only fetch if settings are updated.
+// FIXME: Can we validate that the content parameter actually fits inside of the terminal?
+//        - If it doesn't fit, how do we handle?
+impl<'a> Window<'a> {
+    pub fn new(content: &'a str) -> Self {
+        Window { content }
+    }
+
+    /// This is one of the core functions of TBG!
+    /// Use-cases:
+    ///  - During dialogue/narration mode (TODO: Come up with these modes, naming conventions)
+    ///  - *Not* during world/navigation mode (that uses Viewport::render())
+    ///  - The Viewport stuct's render fn and this draw_window fn are very similar
+    ///    - Might need to share some abstractions in the future
+    ///
+    /// Responsibilities:
+    ///  - Take a string slice (usually a snippet of dialogue or narration)
+    ///  - Draw a frame around the edges of the user's terminal
+    ///  - Center the message in the frame
+    ///
+    /// Other notes:
+    ///  - The real complexity of this method is in calculating the padding
+    ///     - The string slice is split into lines by the new-line char (\n)
+    ///     - The lines may contain ANSI colors, or multi-byte unicode chars--
+    ///       the padding calculations need to take into account these
+    ///       invisible or non-standard chars
+    ///  - Users can choose the border styling in the settings
+    ///  - The draw_window method can be used in tandem with the simulate_typing method
+    ///
+    pub fn render(&self) -> io::Result<()> {
         let mut stdout = io::stdout();
 
         // Get the terminal size

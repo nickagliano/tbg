@@ -8,4 +8,4 @@
 /// to be extracted into a tbg::game_engine::interactions.
 ///
 pub mod menu;
-// pub mod window;
+pub mod window;

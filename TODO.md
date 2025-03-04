@@ -5,30 +5,21 @@
   - [ ] Start with name, gender, and height inputs. Deliberation time, etc.
 - [ ] Add created at / updated at to all new tables
   - [ ] Dialogue, responses, decisions
-- [ ] Enhance routines
-  - [ ] Abstract out the raw/un-raw logic. As a "Routine" trait?
 - [ ] Add a loop (in game engine? In routines?) that stops the game and displays "window too small" if under
       a certain min height or min width
 - [ ] Add seeds
-  - [ ] Don't seed, and don't try to create tables with each db connection!
-    - [ ] For now, just do a trivial check and assert that the last item from seeds exists
+  - [x] Don't seed, and don't try to create tables with each db connection!
+    - [x] For now, just do a trivial check and assert that the last item from seeds exists
+  - [ ] Pages
+  - [ ] Characters
+  - [ ] Books
 - [ ] Add "deliberation_time"
-- [ ] Figure out how to abstract the main interfaces (world nav, dialogue/narration, book builder, battle)
-  - [x] Bigger than the `game_engines/interactions/`. Routines?
-  - [x] Starts and ends raw mode?
-  - [ ] Can wrap whatever this concept is in amazing error handling + break down logic (so we don't get stuck in raw mode, etc.)
 - [ ] Add battle models. Turns, BattleLog, ... everything...
-- [ ] Dialogue system
-  - [ ] Add dialogue models. Dialogue history, decisions, etc.
-  - [ ] How to use dialogue routine?
 - [ ] Add BookBuilder experience
 - [ ] Add Battle experience
 - [ ] print_menu should *not* render! It should return a &str
-- [ ] Return the player id when creating the player instead of having to load it afterwards.
-- [ ] Return the game state id when creating the game state instead of having to load it afterwards.
-- [ ] Catch up on tests!
-  - [ ] Test everything now that crossterm is implemented
-  - [x] Music tests (it does't make sense to test some of the methods)
+- [ ] Don't "queue"/"buffer" user terminal key presses... really ruins the dialogue flow.
+  - Not sure how this is happening / what terminal + crossterm does. But it's not great for our use-case.
 
 ## Medium
 - [ ] Add player background
@@ -60,6 +51,15 @@
 - [ ] Consider moving the `CharacterType` definition out of the dialogue module.
 
 ## Done!
+- [x] Dialogue system
+  - [x] Add dialogue models. Dialogue history, decisions, etc.
+  - [x] How to use dialogue routine?
+- [x] Figure out how to abstract the main interfaces (world nav, dialogue/narration, book builder, battle)
+  - [x] Bigger than the `game_engines/interactions/`. **Routines**?
+  - [x] Starts and ends raw mode?
+  - [x] Can wrap whatever this concept is in amazing error handling + break down logic (so we don't get stuck in raw mode, etc.)
+- [x] Return the player id when creating the player instead of having to load it afterwards.
+- [x] Return the game state id when creating the game state instead of having to load it afterwards.
 - [x] Move player and related files into new folder nested in models.
 - [x] just use FromSql for height and gender, clean up Gender's unnecessary complexity
 - [x] Add a title screen / landing page

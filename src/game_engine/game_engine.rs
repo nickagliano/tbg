@@ -12,17 +12,19 @@ use player::gender::Gender;
 use player::height::Height;
 use player::player::Player;
 // TODO: Add battle::BattleRoutine, book_builder::BookBuilderRoutine
-use super::InterfaceMode;
+use super::interface_mode::InterfaceMode;
 use routines::{
     book_tutorial::BookTutorialRoutine, title_menu::TitleMenuRoutine,
     world_navigation::WorldNavigationRoutine,
 };
 use rusqlite::{Connection, Result};
 use std::error::Error;
+use std::time::Instant;
 
 pub struct GameEngine {
     music_player: MusicPlayer,
     conn: Connection,
+    session_start: Instant,
 }
 
 impl GameEngine {
@@ -30,8 +32,13 @@ impl GameEngine {
         let music_player = MusicPlayer::new();
         let conn = db::connection::get_connection(None)
             .expect("Failed to initialize database connection in game engine constructor");
+        let session_start = Instant::now();
 
-        Self { music_player, conn }
+        Self {
+            music_player,
+            conn,
+            session_start,
+        }
     }
 
     pub fn start(&mut self) {
@@ -39,7 +46,15 @@ impl GameEngine {
             // Hard-code this to off for now... It's annoying!
             self.music_player.play();
         }
+
+        // FIXME: on exit, update game state with new
+        //        total_play_time (now - session_start)
+        //
+        //        Can we catch all errors and exit states and run
+        //        cleanup code?
         self.start_game().expect("Failed to start game");
+
+        println!("{:?}", self.session_start);
     }
 
     pub fn start_game(&mut self) -> Result<(), Box<dyn Error>> {

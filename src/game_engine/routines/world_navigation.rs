@@ -1,4 +1,4 @@
-use crate::game_engine::InterfaceMode;
+use crate::game_engine::interface_mode::InterfaceMode;
 use crate::models::game_state::game_state::GameState;
 use crate::world::map_file_utils::generate_demo_map;
 use crate::world::navigation::{prompt_for_action, Direction, NavigationAction};

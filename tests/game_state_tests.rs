@@ -1,5 +1,7 @@
-use tbg::game_engine::InterfaceMode;
+use std::time::Duration;
 #[cfg(test)]
+use tbg::game_engine::interface_mode::InterfaceMode;
+use tbg::models::game_state::game_state::SqlDuration;
 use tbg::test_utils;
 use tbg::{world::navigation::Direction, GameState, Player};
 
@@ -85,6 +87,7 @@ fn test_load_game_state() {
         x: 10,
         y: 20,
         direction: Direction::Up,
+        total_play_time: SqlDuration(Duration::new(0, 0)),
         created_at: chrono::Local::now().naive_local(),
         updated_at: chrono::Local::now().naive_local(),
     };

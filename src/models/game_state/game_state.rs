@@ -1,9 +1,37 @@
-use chrono::NaiveDateTime;
-use rusqlite::{Connection, Result};
-
 use crate::db::GAME_STATE_TABLE;
-use crate::game_engine::InterfaceMode;
+use crate::game_engine::interface_mode::InterfaceMode;
 use crate::world::navigation::Direction;
+use chrono::NaiveDateTime;
+use rusqlite::types::{FromSql, FromSqlResult, ToSqlOutput, ValueRef};
+use rusqlite::ToSql;
+use rusqlite::{Connection, Result};
+use std::time::Duration;
+
+#[derive(Debug, Clone, Copy)]
+pub struct SqlDuration(pub Duration); // Wrapper type (so we can implement ToSql and FromSql)
+
+impl ToSql for SqlDuration {
+    fn to_sql(&self) -> Result<ToSqlOutput> {
+        Ok(ToSqlOutput::from(self.as_secs() as i64)) // Store as integer (seconds)
+    }
+}
+
+impl FromSql for SqlDuration {
+    fn column_result(value: ValueRef) -> FromSqlResult<Self> {
+        let seconds = value.as_i64()?; // Read integer (seconds)
+        Ok(SqlDuration(Duration::from_secs(seconds as u64)))
+    }
+}
+
+impl SqlDuration {
+    pub fn as_secs(&self) -> u64 {
+        self.0.as_secs() // Forward to inner Duration
+    }
+
+    pub fn from_secs(secs: u64) -> Self {
+        SqlDuration(Duration::from_secs(secs))
+    }
+}
 
 // FIXME: There's an argument that some of the things being stored shouldn't be
 //        persisted in the database. Or, player x, y, and direction should be updated in memory,
@@ -17,6 +45,7 @@ pub struct GameState {
     pub x: usize,                      // Player's X coordinate
     pub y: usize,                      // Player's Y coordinate
     pub direction: Direction,          // Track last movement
+    pub total_play_time: SqlDuration,  // Total playtime // TODO: Implement Duration to_sql
     pub created_at: NaiveDateTime,     // Timestamp when the game state was created
     pub updated_at: NaiveDateTime,     // Timestamp when the game state was last updated
 }
@@ -31,8 +60,10 @@ impl GameState {
             x: 0,
             y: 0,
             direction: Direction::Up,
+            total_play_time: SqlDuration(Duration::new(0, 0)),
             created_at: chrono::Local::now().naive_local(),
             updated_at: chrono::Local::now().naive_local(),
+            // session_start: Instant::now(),
         }
     }
 
@@ -83,9 +114,10 @@ impl GameState {
 
     pub fn load_for_player(conn: &Connection, player_id: i32) -> Result<Option<Self>> {
         let mut stmt = conn.prepare(&format!(
-            "SELECT interface_mode, current_epic, current_stage, x, y, direction, created_at, updated_at FROM {} WHERE player_id = ?1",
+            "SELECT interface_mode, current_epic, current_stage, x, y, direction, total_play_time, created_at, updated_at FROM {} WHERE player_id = ?1",
             GAME_STATE_TABLE
         ))?;
+
         let mut game_state_iter = stmt.query_map([player_id], |row| {
             Ok(GameState {
                 interface_mode: row.get(0)?,
@@ -95,8 +127,9 @@ impl GameState {
                 x: row.get(3)?,
                 y: row.get(4)?,
                 direction: row.get(5)?,
-                created_at: row.get(6)?,
-                updated_at: row.get(7)?,
+                total_play_time: row.get(6)?,
+                created_at: row.get(7)?,
+                updated_at: row.get(8)?,
             })
         })?;
 

@@ -68,6 +68,7 @@ fn setup_db(conn: &Connection) -> Result<&Connection> {
                 x INTEGER NOT NULL DEFAULT 0, -- X coordinate of the player
                 y INTEGER NOT NULL DEFAULT 0, -- Y coordinate of the player
                 direction INTEGER NOT NULL DEFAULT 0, -- enum for last direction of the player
+                total_play_time INTEGER NOT NULL DEFAULT 0, -- total play time in seconds
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE

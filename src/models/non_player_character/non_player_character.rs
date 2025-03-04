@@ -55,9 +55,11 @@ impl NPC {
     // Save the NPC to the database
     pub fn create(&self, conn: &Connection) -> Result<()> {
         conn.execute(
-            "INSERT INTO ?1 (uuid, name, gender, height, background, main_arc, created_at, updated_at) VALUES (?2, ?3, ?4, ?5)",
+            &format!(
+                "INSERT INTO {} (name, gender, created_at, updated_at) VALUES (?1, ?2, ?3, ?4)",
+                NPC_TABLE
+            ),
             rusqlite::params![
-                NPC_TABLE,
                 self.name,
                 self.gender,
                 self.created_at,

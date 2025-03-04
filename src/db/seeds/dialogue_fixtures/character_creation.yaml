@@ -1,0 +1,44 @@
+- id: 1
+  character_id: 1 # the narrator
+  character_type: "non_player_character"
+  text: "Welcome to the wonderful world of The Book Game!"
+  responses: []
+  root: true
+  root_name: "character_creation"
+  next_id: 2
+
+- id: 2
+  character_id: 1 # the narrator
+  character_type: "non_player_character"
+  text: "What is your name?"
+  responses: []
+  has_input: true
+  input_type: "string"
+  next_id: 3
+
+- id: 3
+  character_id: 1 # the narrator
+  character_type: "non_player_character"
+  text: "Nice to meet you, {args[0]}!"
+  responses: []
+  next_id: 4
+
+- id: 4
+  character_id: 1 # the narrator
+  character_type: "non_player_character"
+  text: "Be careful, these lands are dangerous."
+  responses: []
+  next_id: 5
+
+- id: 5
+  character_id: 1 # the narrator
+  character_type: "non_player_character"
+  text: "Listen to me and you'll do okay."
+  responses: []
+  next_id: 6
+
+- id: 6
+  character_id: 1 # the narrator
+  character_type: "non_player_character"
+  text: "First order of business.\n\nFollow the road ahead, and you’ll find a town."
+  responses: []

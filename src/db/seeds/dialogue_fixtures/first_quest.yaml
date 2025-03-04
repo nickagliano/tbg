@@ -1,0 +1,27 @@
+- id: 7
+  character_id: 1 # the narrator
+  character_type: "non_player_character"
+  text: "Ah, a traveler! Are you lost?"
+  responses:
+    - id: 1
+      text: "No, I'm just looking around."
+      next_id: 7
+      dialogue_id: 6
+    - id: 2
+      text: "Yes, can you help me?"
+      next_id: 8
+      dialogue_id: 6
+  root: true
+  root_name: first_quest
+
+- id: 8
+  character_id: 1 # the narrator
+  character_type: "non_player_character"
+  text: "Be careful, these lands are dangerous."
+  responses: []
+
+- id: 9
+  character_id: 1 # the narrator
+  character_type: "non_player_character"
+  text: "Follow the road ahead, and you’ll find a town."
+  responses: []

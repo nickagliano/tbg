@@ -1,6 +1,10 @@
 # TODO:
 
 ## High priority
+- [ ] Implement Decisions. Record them at all dialogue inputs and choices.
+  - [ ] Start with name, gender, and height inputs. Deliberation time, etc.
+- [ ] Add created at / updated at to all new tables
+  - [ ] Dialogue, responses, decisions
 - [ ] Enhance routines
   - [ ] Abstract out the raw/un-raw logic. As a "Routine" trait?
 - [ ] Add a loop (in game engine? In routines?) that stops the game and displays "window too small" if under
@@ -8,6 +12,7 @@
 - [ ] Add seeds
   - [ ] Don't seed, and don't try to create tables with each db connection!
     - [ ] For now, just do a trivial check and assert that the last item from seeds exists
+- [ ] Add "deliberation_time"
 - [ ] Figure out how to abstract the main interfaces (world nav, dialogue/narration, book builder, battle)
   - [x] Bigger than the `game_engines/interactions/`. Routines?
   - [x] Starts and ends raw mode?
@@ -41,6 +46,7 @@
 - [ ] Test that all "update" methods update the updated_at value
 - [ ] Let users choose to continue, or create a new save file at the title screen
 - [ ] Generate user seed
+- [ ] Remove the dialogue_id from the responses in the YAML structure... unnecessary field, but having it makes deserialization way more simple.
 
 ## Low or nice-to-haves
 - [ ] Add docs and Doc-tests
@@ -49,7 +55,9 @@
 - [ ] With a few adaptations, and if it's considered during development, this game has the potenital to be very accessible
 - [ ] Right now the GameEngine::Routines::Battle routine is setup for Player vs NPC. I've decided to focus on PvNPC,
       without worrying too much about PvP. It's in the back of my head but I can't overengineer PvNPC right now.
-
+- [ ] Consider removing the `IF NOT EXISTS` statements from DB setup
+- [ ] Consider renaming Dialogue to DialogueNode
+- [ ] Consider moving the `CharacterType` definition out of the dialogue module.
 
 ## Done!
 - [x] Move player and related files into new folder nested in models.

@@ -42,9 +42,8 @@ impl Player {
 
     // Load the most recent player by the updated_at field
     pub fn load_most_recent(conn: &Connection) -> Result<Option<Self>> {
-        // FIXME: use player table const
         let mut stmt = conn.prepare(
-        &format!("SELECT id, name, gender, height, background, main_arc, created_at, updated_at FROM {} ORDER BY updated_at DESC LIMIT 1", PLAYER_TABLE),
+            &format!("SELECT id, name, gender, height, background, main_arc, created_at, updated_at FROM {} ORDER BY updated_at DESC LIMIT 1", PLAYER_TABLE),
         )?;
         let mut player_iter = stmt.query_map([], |row| {
             let id: i32 = row.get(0)?;
@@ -77,7 +76,7 @@ impl Player {
     // Save the player to the database and return
     pub fn create(&self, conn: &Connection) -> Player {
         conn.execute(
-            "INSERT INTO players (name, gender, height, background, main_arc, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            &format!("INSERT INTO {} (name, gender, height, background, main_arc, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)", PLAYER_TABLE),
             rusqlite::params![
                 self.name,
                 self.gender,

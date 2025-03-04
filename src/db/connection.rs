@@ -1,10 +1,11 @@
 use crate::db::save::{ensure_save_directory, get_save_path};
 use crate::db::seeds;
 use crate::db::{
-    BOOK_PAGE_TABLE, BOOK_PASSIVE_TABLE, BOOK_TABLE, GAME_STATE_TABLE, NPC_TABLE,
-    PAGE_ACTION_TABLE, PAGE_PASSIVE_TABLE, PAGE_TABLE, PLAYER_TABLE,
+    BOOK_PAGE_TABLE, BOOK_PASSIVE_TABLE, BOOK_TABLE, DECISION_TABLE, DIALOGUE_RESPONSE_TABLE,
+    DIALOGUE_TABLE, GAME_STATE_TABLE, NPC_TABLE, PAGE_ACTION_TABLE, PAGE_PASSIVE_TABLE, PAGE_TABLE,
+    PLAYER_TABLE,
 };
-use rusqlite::{Connection, Result};
+use rusqlite::{params, Connection, Result};
 
 pub fn get_connection(db_path: Option<&str>) -> Result<Connection> {
     let save_path = get_save_path(db_path);
@@ -14,10 +15,29 @@ pub fn get_connection(db_path: Option<&str>) -> Result<Connection> {
 
     let conn = Connection::open(save_path)?;
 
-    // FIXME: Don't always execute create tables! Run a check if seed data exists first?
-    //
-    seeds::run();
+    if !is_db_setup(&conn).unwrap() {
+        setup_db(&conn).unwrap();
+        seeds::run(&conn);
+    }
 
+    Ok(conn)
+}
+
+/// Checks if the database is set up by verifying the existence of the "buses" table.
+/// Since all tables are created together in `setup_database`, this is sufficient.
+fn is_db_setup(conn: &Connection) -> Result<bool> {
+    table_exists(conn, &format!("{}", PLAYER_TABLE))
+}
+
+/// Checks if a specific table exists in the database.
+fn table_exists(conn: &Connection, table_name: &str) -> Result<bool> {
+    let mut stmt = conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?")?;
+    let exists = stmt.exists(params![table_name])?;
+    Ok(exists)
+}
+
+/// This fn creates the database tables
+fn setup_db(conn: &Connection) -> Result<&Connection> {
     // Player table
     conn.execute(
         &format!(
@@ -178,13 +198,69 @@ pub fn get_connection(db_path: Option<&str>) -> Result<Connection> {
                 gender INTEGER NOT NULL,
                 created_at TIMESTAMP NOT NULL,
                 updated_at TIMESTAMP NOT NULL
-        )",
+        );",
             NPC_TABLE
         ),
         [],
     )?;
 
-    // TODO: Add battle models. Turns, BattleLog, DialogueLogs... everything...
+    // Dialogue table
+    conn.execute(
+        &format!(
+            "CREATE TABLE IF NOT EXISTS {} (
+                id INTEGER PRIMARY KEY,
+                character_id INTEGER NOT NULL, -- Polymorphic, references either a player or NPC
+                character_type TEXT NOT NULL, -- 'player' or 'non_player_character'
+                root BOOLEAN DEFAULT 0, -- Indicates if the dialogue is a root node
+                root_name TEXT, -- Optional root name for specific root nodes
+                text TEXT NOT NULL,
+                has_input BOOLEAN DEFAULT 0,
+                input_type TEXT,
+                next_id INTEGER,
+                CHECK (character_type IN ('player', 'non_player_character'))
+            );",
+            DIALOGUE_TABLE
+        ),
+        [],
+    )?;
+
+    // Dialogue responses table
+    // For storing dialogue responses / choices
+    conn.execute(
+        &format!(
+            "CREATE TABLE IF NOT EXISTS {} (
+                id INTEGER PRIMARY KEY,
+                dialogue_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                next_id INTEGER NOT NULL, -- Dialogue response must have a next_id
+                FOREIGN KEY (dialogue_id) REFERENCES {}(id)
+            );",
+            DIALOGUE_RESPONSE_TABLE, DIALOGUE_TABLE,
+        ),
+        [],
+    )?;
+
+    // Decisions table
+    // For tracking player decisions
+    conn.execute(
+        &format!(
+            "CREATE TABLE IF NOT EXISTS {} (
+                id INTEGER PRIMARY KEY,
+                player_id INTEGER NOT NULL,  -- Tracks which player made the decision
+                dialogue_id INTEGER NOT NULL,  -- Links to the dialogue where the decision was made
+                response_id INTEGER, -- Links to the chosen response (nullable for input-based dialogues)
+                deliberation_time INTEGER NOT NULL,  -- Time taken to decide (stored as milliseconds)
+                FOREIGN KEY (dialogue_id) REFERENCES {}(id),
+                FOREIGN KEY (response_id) REFERENCES {}(id)
+            );",
+            DECISION_TABLE,
+            DIALOGUE_TABLE,
+            DIALOGUE_RESPONSE_TABLE,
+        ),
+        [],
+    )?;
+
+    // TODO: Add battle models. Turns, BattleLog,... everything...
 
     Ok(conn)
 }

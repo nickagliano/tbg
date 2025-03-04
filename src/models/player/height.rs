@@ -1,8 +1,8 @@
 use rusqlite::types::FromSql;
 use rusqlite::types::{FromSqlResult, ValueRef};
 use rusqlite::ToSql;
+use std::fmt;
 
-/// Represents the height of a player in the game.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Height {
     VeryShort,
@@ -32,7 +32,21 @@ impl FromSql for Height {
             1 => Ok(Height::Short),
             2 => Ok(Height::Average),
             3 => Ok(Height::Tall),
+            4 => Ok(Height::VeryTall),
             _ => Err(rusqlite::types::FromSqlError::InvalidType),
         }
+    }
+}
+
+impl fmt::Display for Height {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let height_str = match self {
+            Height::VeryShort => "Very Short",
+            Height::Short => "Short",
+            Height::Average => "Average",
+            Height::Tall => "Tall",
+            Height::VeryTall => "Very Tall",
+        };
+        write!(f, "{}", height_str)
     }
 }

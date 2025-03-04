@@ -1,3 +1,5 @@
+use rusqlite::Connection;
+
 /// Seeds (must be run in certain order!)
 ///
 // TODO:
@@ -6,13 +8,18 @@
 // - Characters
 //  - CharacterPage
 // - Epics and stages
+// - More dialogue
 mod books;
-mod characters;
+mod dialogue;
+mod non_player_characters;
 mod pages;
 
-pub fn run() {
+pub fn run(conn: &Connection) {
     println!("Running seeds!");
-    pages::run();
-    characters::run();
-    books::run();
+
+    pages::run(conn);
+    non_player_characters::run(conn);
+    books::run(conn);
+
+    dialogue::run(conn);
 }

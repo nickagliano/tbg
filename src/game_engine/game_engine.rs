@@ -1,5 +1,7 @@
+use super::routines::dialogue::DialogueRoutine;
 use crate::db;
 use crate::game_engine::routines;
+// use crate::models::dialogue::decision::capture_decision;
 use crate::models::dialogue::dialogue;
 use crate::models::game_state;
 use crate::models::player;
@@ -20,122 +22,121 @@ use std::error::Error;
 
 pub struct GameEngine {
     music_player: MusicPlayer,
-    db_conn: Connection,
+    conn: Connection,
 }
 
 impl GameEngine {
     pub fn new() -> Self {
         let music_player = MusicPlayer::new();
-        let db_conn = db::connection::get_connection(None)
+        let conn = db::connection::get_connection(None)
             .expect("Failed to initialize database connection in game engine constructor");
 
-        Self {
-            music_player,
-            db_conn,
-        }
+        Self { music_player, conn }
     }
 
     pub fn start(&mut self) {
-        self.music_player.play();
+        if false {
+            // Hard-code this to off for now... It's annoying!
+            self.music_player.play();
+        }
         self.start_game().expect("Failed to start game");
     }
 
-    // FIXME: Need to implement some of the concepts I've been working on in this main flow
-    //        - Epics and stages
-    //        - GameEngine::Routines and GameEngine::Interactions
     pub fn start_game(&mut self) -> Result<(), Box<dyn Error>> {
         // Run title screen and menu routine
         // - Show title screen
         // - TODO: Let user select save file
         TitleMenuRoutine.new().run();
 
-        // FIXME: Need to figure out how to use Dialogue to drive this
-        //        instead of hard-coding it all into the game engine
-        //
-        //        DialogueRoutine should take the dialogue as input then
-        //        drive for a while?
-        //
-        //        The complexity of dialogue, and dialogue routine is
-        //        sort of blocking me... So I'm just going to ignore
-        //        that for a while and get some of the game actually
-        //        implemented before I try to abstract too much.
-        //
-        //        Maybe if I just start building the story out,
-        //        the dialogue abstraction will become more clear.
-        //
-        //        TLDR; hard-coded dialogue is fine for now.
-        //
-        let _dialogue = dialogue::load_dialogue("character_creation");
-
-        // Start player create
-        let mut is_new_player = false;
-
         // Start game by loading player, or
         // guiding them through the character creation intro
-        let mut player = match Player::load(&self.db_conn)? {
+        let mut player = match Player::load(&self.conn)? {
             Some(player) => player,
             None => {
-                // New player is being created
-                is_new_player = true;
+                // New player!
+                // Load the character creation dialogue tree.
+                let root_node = dialogue::load_by_root_name(&self.conn, "character_creation")
+                    .unwrap()
+                    .unwrap();
 
-                terminal_utils::simulate_typing("Welcome to the wonderful world of The Book Game!");
+                let mut dialogue_routine = DialogueRoutine::new(root_node);
+                let args = dialogue_routine.run();
 
-                terminal_utils::prompt_enter_to_continue();
-
-                terminal_utils::simulate_typing("What is your name?");
-                let mut name = terminal_utils::get_input();
-
-                // Loop until the name is not blank
-                while name.trim().is_empty() {
-                    terminal_utils::simulate_typing("Please enter a valid name.");
-                    name = terminal_utils::get_input();
-                }
+                // Unpack args (player's name)
+                let player_name = args[0].clone();
 
                 // We save with a default Gender and Height. These get overwritten in the next steps.
-                let mut new_player = Player::new(name.clone(), Gender::Male, Height::Average);
-                new_player = new_player.create(&self.db_conn);
+                let mut new_player = Player::new(player_name, Gender::Male, Height::Average);
+                new_player = new_player.create(&self.conn);
 
-                // Grab the newly created player's id from the database
-                // and create the player's game state
-                GameState::new(new_player.id).create(&self.db_conn);
-
-                terminal_utils::simulate_typing(&format!("Hello, {}!", new_player.name));
-                terminal_utils::prompt_enter_to_continue();
+                // Using the newly created player's id from the database,
+                // create the player's game state
+                GameState::new(new_player.id).create(&self.conn);
 
                 new_player
             }
         };
 
         // Reload game state
-        let mut game_state = GameState::load_for_player(&self.db_conn, player.id)?.unwrap();
+        let mut game_state = GameState::load_for_player(&self.conn, player.id)?.unwrap();
 
-        // Give special message if player is returning, but never completed character creation
-        if !is_new_player && game_state.current_stage == "character_creation" {
-            terminal_utils::simulate_typing("Looks like you're still creating your character.");
-            terminal_utils::prompt_enter_to_continue();
-        }
-
+        // FIXME: Implement this as a routine
         if game_state.current_stage == "character_creation" {
             // Start gender selection experience
+            // FIXME: start_timer (so we can capture deliberation time)...
             let options = vec![Gender::Male, Gender::Female, Gender::Unspecified];
-            let gender = self.menu_select("Please select your gender:", options);
+            let gender = self.menu_select(
+                "Wait. One more thing before we continue. Are you a...:",
+                options,
+            );
+
+            // decision::capture_decision(...)
 
             // Update player's gender
             player.gender = gender.clone();
-            player.update(&self.db_conn)?;
-
-            // Update game state, finished with choosing their name and gender
-            game_state.current_stage = "book_tutorial".to_string();
-            game_state.update(&self.db_conn);
-
-            // Reload player
-            player = Player::load(&self.db_conn)?.unwrap();
+            player.update(&self.conn)?;
 
             terminal_utils::simulate_typing(&format!("You selected: {}", player.gender));
             terminal_utils::prompt_enter_to_continue();
+
+            let options = vec![
+                Height::VeryShort,
+                Height::Short,
+                Height::Average,
+                Height::Tall,
+                Height::VeryTall,
+            ];
+            // FIXME: start_timer (so we can capture deliberation time)...
+            let height = self.menu_select(
+                "And, I know this is maybe a weird question, but I have to ask. How tall are you?:",
+                options,
+            );
+
+            // decision::capture_decision(...)
+
+            // Update player's height
+            player.height = height.clone();
+            player.update(&self.conn)?;
+
+            // Update game state, finished with choosing their name and gender
+            game_state.current_stage = "book_tutorial".to_string();
+            game_state.update(&self.conn);
+
+            // Reload player
+            player = Player::load(&self.conn)?.unwrap();
+
+            terminal_utils::simulate_typing(&format!("You selected: {}", player.height));
+            terminal_utils::prompt_enter_to_continue();
+
+            terminal_utils::simulate_typing(&format!(
+                "Interesting. Sorry for the blunt questions.\n\nI'm sort of hard of seeing. And, well, my eyes often deceive me.",
+            ));
+            terminal_utils::prompt_enter_to_continue();
         }
 
-        terminal_utils::simulate_typing("Let's resume the adventure!");
+        terminal_utils::simulate_typing(
+            "Let's explore!\n\n(Move down two spaces, and over to the right one space)",
+        );
         terminal_utils::prompt_enter_to_continue();
 
         let new_inferface_mode = WorldNavigationRoutine::new(game_state).run();

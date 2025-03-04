@@ -1,6 +1,6 @@
-/// Seed Books
+use rusqlite::Connection;
 
-pub fn run() {
+pub fn run(_conn: &Connection) {
     println!("Seeding books...");
 
     // FIXME: Is seeding books needed..?

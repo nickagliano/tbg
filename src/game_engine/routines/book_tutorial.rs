@@ -6,12 +6,12 @@ use crate::terminal_utils;
 use crossterm::terminal;
 
 pub struct BookTutorialRoutine {
-    _player: Player,
+    player: Player,
 }
 
 impl BookTutorialRoutine {
     pub fn new(player: Player) -> Self {
-        BookTutorialRoutine { _player: player }
+        BookTutorialRoutine { player }
     }
 
     // Runs the book tutorial, in which the player will learn how to
@@ -19,14 +19,16 @@ impl BookTutorialRoutine {
     pub fn run(&mut self) {
         terminal::enable_raw_mode().unwrap();
 
-        terminal_utils::simulate_typing("Okay, young one.");
+        terminal_utils::simulate_typing(&format!(
+            "Okay, {}. I hope you're ready to learn.",
+            self.player.name
+        ));
         terminal_utils::prompt_enter_to_continue();
 
         terminal_utils::simulate_typing("It's time to begin your own story.");
         terminal_utils::prompt_enter_to_continue();
 
         // TODO: Show a book, closed.
-        //
 
         loop {
             break;

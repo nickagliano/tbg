@@ -14,7 +14,13 @@ At the core of The Book Game is a turned-based strategy game, where players must
 ## Installation
 ### Prerequisites
 - Rust (latest stable version recommended)
-- SQLite (included via Rust dependencies)
+- ttyd (to play in browser)
+
+### Installing ttyd (for playing in the browser)
+```shell
+brew install ttyd  # macOS
+sudo apt install ttyd  # Debian/Ubuntu
+```
 
 ### Clone the Repository
 ```sh
@@ -28,8 +34,17 @@ cargo build --release
 ```
 
 ### Run the Game
+
+#### In terminal
 ```sh
-cargo run
+cargo run  # start game, continuing from last save
+cargo run -- --new-game # useful for dev if you want to start afresh
+```
+
+#### In browser
+```sh
+./bin/web.sh  # start game, continuing from last save
+./bin/web_new_game.sh  # useful for dev i f you want to start afresh
 ```
 
 ## Usage
@@ -41,27 +56,45 @@ Upon launching the game, you will be prompted to either continue an existing adv
 ## Project Structure
 ```
 tbg/
-├── saves/                 # For storing save files (sqlite databases)
-├── src/
-│   ├── db/                # Database connection and management
-│   ├── models/            # Game data structures (e.g., Player, GameState)
-│   ├── args.rs            # For parsing command-line input (mostly for development purposes)
-│   ├── lib.rs             # Game logic and core functionality
-│   ├── main.rs            # Entry point of the game
-│   ├── terminal_utils.rs  # For all things manipulating the terminal
-│   ├── test_utils/        # Utilities for testing
-├── tests/                 # Tests
-├── Cargo.toml             # Rust package configuration
-├── README.md              # Project documentation
+├── Cargo.toml                # Rust package configuration
+├── README.md                 # Project documentation
+├── TODO.md                   # Nick's TODO list (with ordered priorities)
+├── bin/                      # Wrappers around helpful commands
+├── docs/                     # Documentation for developers (probably going to move this to a GitHub project wiki)
+├── saves/                    # For storing save files (sqlite databases)
+├── src
+│   ├── args.rs                # For parsing command-line input (mostly for development purposes)
+│   ├── db                     # Database connection and management
+│   │   ├── [REDACTED]         # various db module functions
+│   │   └── seeds/             # Seed data, fixtures, etc.
+│   ├── dev/                   # Directory of specific development scenarios (useful for workshopping without requiring playing through the whole game)
+│   ├── game_engine
+│   │   ├── game_engine.rs     # Core engine/driver of game
+│   │   ├── game_event.rs
+│   │   ├── interactions/      # Resuable, composable rendering loops, usually to get some input from the user
+│   │   ├── mod.rs
+│   │   └── routines/          # Reusable, composable, often madeof many "interactions" (e.g., Battle, Dialogue, etc.)
+│   ├── lib.rs                # lib
+│   ├── main.rs               # Entry point of the game
+│   ├── models/               # All of the models (almost always with SQL representations) and their functions
+│   ├── music/                # The music module, for music and sound effects
+│   ├── terminal_utils.rs     # For all things manipulating the terminal (being deprecated, everything moving to tui/)
+│   ├── test_utils.rs         # Test utilities
+│   ├── tui/                  # Terminal User Interface module, for all things rendering
+│   └── world/                # For all things manupulating the world, world map (during the Navigation routine)
+└── tests                     # Tests
 ```
 
-## Dependencies
-This project relies on the following Rust crates:
+## Highlighted Dependencies
+This project relies heavily on the following Rust crates:
 - `crossterm` – for handling terminal interactions
 - `rusqlite` – for SQLite database support
+- For a full list of dependencies and why they're in this project, see the Cargo.toml and the comments there.
 
 ## Contributing
 Contributions are welcome! Feel free to fork the repository and submit pull requests.
+
+CONTRIBUTING.md coming soon...
 
 ## License
 This project is licensed under the MIT License. See `LICENSE` for details.

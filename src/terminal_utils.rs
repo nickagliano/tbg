@@ -151,7 +151,8 @@ pub fn simulate_typing(message: &str) {
     let mut stdout = io::stdout();
 
     // TODO: Move typing speed to settings!
-    let typing_speed = 25;
+    // (The smaller the number, the faster the typing)
+    let typing_speed = 10;
     let mut displayed_message = String::new();
 
     // Hide the cursor before typing starts

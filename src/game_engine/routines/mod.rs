@@ -1,6 +1,7 @@
 //! # GameEngine::Routines
 //!
 //! Routines are high-level execution loops that manage structured gameplay interactions.
+//!
 //! Each Routine encapsulates a distinct mode of player engagement, handling UI state,
 //! input processing, and game logic flow. These routines ensure consistent execution
 //! and seamless transitions between different gameplay contexts.

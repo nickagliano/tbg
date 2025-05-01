@@ -127,6 +127,8 @@ impl GameEngine {
                 options,
             );
 
+            // I want to implement "decisions"
+            // We'll capture a decision here
             // decision::capture_decision(...)
 
             // Update player's height

@@ -36,6 +36,7 @@ impl GameEngine {
                         }
                     }
                     KeyCode::Enter => break options[selected_index].clone(),
+                    // FIXME: This catch-all is not good -- breaks if you press any other keys...
                     _ => break options[0].clone(), // Default to first option on unexpected input
                 }
 

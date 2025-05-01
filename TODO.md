@@ -22,6 +22,7 @@
   - Not sure how this is happening / what terminal + crossterm does. But it's not great for our use-case.
 
 ## Medium
+- [ ] Disable cursor events... they can cause issues?
 - [ ] Add player background
 - [ ] The existence of InterfaceMode on tbg::game_engine implies the need for a ui crate.
   - [ ] Some of terminal utils needs to be abstracted out

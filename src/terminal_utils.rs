@@ -112,6 +112,9 @@ pub fn prompt_enter_to_continue() {
                 if key_event.code == KeyCode::Enter {
                     break; // Exit loop when Enter is pressed
                 }
+                if key_event.code == KeyCode::Esc {
+                    panic!("For development purposes, this exits -- do not deploy to production!")
+                }
             }
         }
     }
@@ -364,4 +367,41 @@ mod tests {
     // - title_screen
     // - draw_title_with_gradient
     // - get_gradient_color
+}
+
+// A more involved menu select function, used for dialogue, not game engine
+pub fn menu_select<T: Clone + std::fmt::Display>(message: &str, options: Vec<T>) -> T {
+    let mut stdout = io::stdout();
+
+    let mut selected_index = 0;
+    execute!(stdout, Hide).expect("Cursor failed to hide");
+
+    print_menu(message, &options, selected_index, true) // pass a slice
+        .expect("Printing menu failed");
+
+    let selected_item = loop {
+        if let Ok(Event::Key(key_event)) = event::read() {
+            match key_event.code {
+                KeyCode::Up => {
+                    if selected_index > 0 {
+                        selected_index -= 1;
+                    }
+                }
+                KeyCode::Down => {
+                    if selected_index < options.len() - 1 {
+                        selected_index += 1;
+                    }
+                }
+                KeyCode::Enter => break options[selected_index].clone(),
+                _ => continue, // Default to first option on unexpected input
+            }
+
+            print_menu(message, &options, selected_index, false).expect("Printing menu failed");
+        }
+    };
+
+    execute!(stdout, Show).expect("Cursor failed to show");
+    clear_console(None);
+
+    selected_item
 }
